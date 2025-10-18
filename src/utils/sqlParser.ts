@@ -146,6 +146,14 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
       }
     });
 
+    // FOREIGN KEYフラグを更新
+    columns.forEach(col => {
+      if (foreignKeys.has(col.name)) {
+        col.isForeignKey = true;
+        col.foreignKeyRef = foreignKeys.get(col.name);
+      }
+    });
+
     tables.push({
       name: tableName,
       columns,

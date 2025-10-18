@@ -8,7 +8,8 @@ CREATE TABLE employees (
   manager_id INT,
   department_id INT,
   hire_date DATE NOT NULL,
-  FOREIGN KEY (manager_id) REFERENCES employees(employee_id)
+  FOREIGN KEY (manager_id) REFERENCES employees(employee_id),
+  FOREIGN KEY (department_id) REFERENCES departments(department_id)
 );
 
 CREATE TABLE departments (

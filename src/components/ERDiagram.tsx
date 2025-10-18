@@ -73,6 +73,12 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
     [setEdges]
   );
 
+  // tablesまたはrelationshipsが変更されたら完全に再構築
+  React.useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
+
   // スタイルが変更されたらノードデータとエッジを更新
   React.useEffect(() => {
     setNodes((nds) =>
