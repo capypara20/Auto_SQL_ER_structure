@@ -179,6 +179,24 @@ const StylePanel: React.FC<StylePanelProps> = ({ style, onChange }) => {
         </div>
 
         <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">主キー+外部キー</label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={style.primaryForeignKeyColor}
+              onChange={(e) => handleChange('primaryForeignKeyColor', e.target.value)}
+              className="h-10 w-20 rounded cursor-pointer"
+            />
+            <input
+              type="text"
+              value={style.primaryForeignKeyColor}
+              onChange={(e) => handleChange('primaryForeignKeyColor', e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">リレーション線の色</label>
           <div className="flex gap-2 items-center">
             <input

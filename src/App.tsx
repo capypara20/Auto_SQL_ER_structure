@@ -17,8 +17,6 @@ function App() {
     const files = event.target.files;
     const target = event.target;
 
-    console.log('handleFileUpload called, files:', files?.length);
-
     if (!files || files.length === 0) return;
 
     const fileContents: string[] = [];
@@ -26,27 +24,21 @@ function App() {
 
     // 複数ファイルを読み込む
     Array.from(files).forEach((file, index) => {
-      console.log(`Reading file ${index}: ${file.name}`);
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target?.result as string;
         fileContents[index] = content;
         filesProcessed++;
 
-        console.log(`File ${index} processed, total processed: ${filesProcessed}/${files.length}`);
-
         // 全ファイルの読み込みが完了したらパース
         if (filesProcessed === files.length) {
           const combinedContent = fileContents.join('\n\n');
-          console.log('Combined content length:', combinedContent.length);
           setSqlContent(combinedContent);
 
           try {
             const { tables: parsedTables, relationships: parsedRelationships } = parseSQLToTables(combinedContent);
             setTables(parsedTables);
             setRelationships(parsedRelationships);
-            console.log('Parsed tables:', parsedTables);
-            console.log('Parsed relationships:', parsedRelationships);
           } catch (error) {
             console.error('Failed to parse SQL:', error);
             alert('SQLファイルのパースに失敗しました。正しいCREATE TABLE文を含むファイルを選択してください。');
@@ -54,7 +46,6 @@ function App() {
 
           // inputをリセットして同じファイルを再度選択可能にする
           setTimeout(() => {
-            console.log('Resetting input value');
             target.value = '';
           }, 100);
         }

@@ -26,39 +26,58 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
     const foreignKeys: Map<string, { table: string; column: string }> = new Map();
 
     for (const line of lines) {
+      // デバッグ: PRIMARY KEYを含む行をすべて表示
+      if (line.match(/PRIMARY/i)) {
+        console.log(`Line with PRIMARY: "${line}"`);
+      }
+
       // CONSTRAINT ... PRIMARY KEY の形式をスキップ
       if (line.match(/^CONSTRAINT\s+\w+\s+PRIMARY\s+KEY/i)) {
-        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*`?(\w+)`?\s*\)/i);
+        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i);
         if (pkMatch) {
-          primaryKeys.push(pkMatch[1]);
+          // カンマ区切りで複数のカラム名を取得（複合主キー対応）
+          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          primaryKeys.push(...columns);
         }
         continue;
       }
 
-      // PRIMARY KEY制約
-      if (line.match(/PRIMARY\s+KEY/i) && !line.match(/^`?\w+`?\s+/)) {
-        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*`?(\w+)`?\s*\)/i);
+      // PRIMARY KEY制約（行頭がPRIMARY KEYで始まる）
+      if (line.match(/^PRIMARY\s+KEY\s*\(/i)) {
+        console.log(`PRIMARY KEY line: "${line}"`);
+        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i);
         if (pkMatch) {
-          primaryKeys.push(pkMatch[1]);
+          console.log(`  → Captured: "${pkMatch[1]}"`);
+          // カンマ区切りで複数のカラム名を取得（複合主キー対応）
+          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          primaryKeys.push(...columns);
         }
         continue;
       }
 
       // CONSTRAINT ... FOREIGN KEY の形式
       if (line.match(/^CONSTRAINT\s+\w+\s+FOREIGN\s+KEY/i)) {
-        const fkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*`?(\w+)`?\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*`?(\w+)`?\s*\)/i);
-        if (fkMatch) {
-          const [, columnName, refTable, refColumn] = fkMatch;
-          foreignKeys.set(columnName, { table: refTable, column: refColumn });
+        // 複合外部キーの場合: FOREIGN KEY (col1, col2) REFERENCES table(col1, col2)
+        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*([^)]+)\s*\)/i);
+        if (compositeFkMatch) {
+          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          const refTable = compositeFkMatch[2];
+          const refColumns = compositeFkMatch[3].split(',').map(col => col.trim().replace(/`/g, ''));
 
-          // リレーションシップを追加
-          relationships.push({
-            id: `${tableName}_${columnName}_${refTable}_${refColumn}`,
-            source: tableName,
-            target: refTable,
-            sourceColumn: columnName,
-            targetColumn: refColumn,
-            type: 'one-to-many',
+          // 各カラムを外部キーとして登録
+          sourceColumns.forEach((sourceCol, index) => {
+            const refCol = refColumns[index] || refColumns[0];
+            foreignKeys.set(sourceCol, { table: refTable, column: refCol });
+
+            // リレーションシップを追加
+            relationships.push({
+              id: `${tableName}_${sourceCol}_${refTable}_${refCol}`,
+              source: tableName,
+              target: refTable,
+              sourceColumn: sourceCol,
+              targetColumn: refCol,
+              type: 'one-to-many',
+            });
           });
         }
         continue;
@@ -66,19 +85,27 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
 
       // FOREIGN KEY制約
       if (line.match(/FOREIGN\s+KEY/i)) {
-        const fkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*`?(\w+)`?\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*`?(\w+)`?\s*\)/i);
-        if (fkMatch) {
-          const [, columnName, refTable, refColumn] = fkMatch;
-          foreignKeys.set(columnName, { table: refTable, column: refColumn });
+        // 複合外部キーの場合: FOREIGN KEY (col1, col2) REFERENCES table(col1, col2)
+        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*([^)]+)\s*\)/i);
+        if (compositeFkMatch) {
+          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          const refTable = compositeFkMatch[2];
+          const refColumns = compositeFkMatch[3].split(',').map(col => col.trim().replace(/`/g, ''));
 
-          // リレーションシップを追加
-          relationships.push({
-            id: `${tableName}_${columnName}_${refTable}_${refColumn}`,
-            source: tableName,
-            target: refTable,
-            sourceColumn: columnName,
-            targetColumn: refColumn,
-            type: 'one-to-many',
+          // 各カラムを外部キーとして登録
+          sourceColumns.forEach((sourceCol, index) => {
+            const refCol = refColumns[index] || refColumns[0];
+            foreignKeys.set(sourceCol, { table: refTable, column: refCol });
+
+            // リレーションシップを追加
+            relationships.push({
+              id: `${tableName}_${sourceCol}_${refTable}_${refCol}`,
+              source: tableName,
+              target: refTable,
+              sourceColumn: sourceCol,
+              targetColumn: refCol,
+              type: 'one-to-many',
+            });
           });
         }
         continue;
@@ -140,6 +167,7 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
     }
 
     // PRIMARY KEYフラグを更新
+    console.log(`${tableName}: PK=[${primaryKeys.join(', ')}] FK=[${Array.from(foreignKeys.keys()).join(', ')}]`);
     columns.forEach(col => {
       if (primaryKeys.includes(col.name)) {
         col.isPrimaryKey = true;

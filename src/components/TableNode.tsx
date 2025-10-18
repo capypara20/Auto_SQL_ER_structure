@@ -43,20 +43,50 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
         {table.columns.map((column, index) => (
           <div
             key={index}
-            className="px-4 py-2 flex items-center justify-between"
+            className="px-4 py-2 flex items-center justify-between relative"
             style={{
               color: style.tableBodyText,
               backgroundColor: style.tableBodyBg,
             }}
           >
+            {/* 各カラムの左側ハンドル（source & target の両方） */}
+            <Handle
+              type="source"
+              position={Position.Left}
+              id={`${table.name}-${column.name}-left`}
+              isConnectable={true}
+              style={{
+                background: column.isPrimaryKey && column.isForeignKey
+                  ? style.primaryForeignKeyColor
+                  : column.isPrimaryKey
+                    ? style.primaryKeyColor
+                    : column.isForeignKey
+                      ? style.foreignKeyColor
+                      : style.relationshipColor,
+                width: '10px',
+                height: '10px',
+                left: '-5px',
+              }}
+            />
+
             <div className="flex items-center gap-2 flex-1">
-              {column.isPrimaryKey && (
+              {/* 主キー+外部キーの複合キー */}
+              {column.isPrimaryKey && column.isForeignKey && (
+                <Key
+                  size={16}
+                  style={{ color: style.primaryForeignKeyColor }}
+                  strokeWidth={2.5}
+                />
+              )}
+              {/* 主キーのみ */}
+              {column.isPrimaryKey && !column.isForeignKey && (
                 <Key
                   size={16}
                   style={{ color: style.primaryKeyColor }}
                   strokeWidth={2.5}
                 />
               )}
+              {/* 外部キーのみ */}
               {column.isForeignKey && !column.isPrimaryKey && (
                 <KeyRound
                   size={16}
@@ -69,6 +99,26 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
               </span>
             </div>
             <span className="text-xs opacity-60 ml-2">{column.type}</span>
+
+            {/* 各カラムの右側ハンドル（source & target の両方） */}
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={`${table.name}-${column.name}-right`}
+              isConnectable={true}
+              style={{
+                background: column.isPrimaryKey && column.isForeignKey
+                  ? style.primaryForeignKeyColor
+                  : column.isPrimaryKey
+                    ? style.primaryKeyColor
+                    : column.isForeignKey
+                      ? style.foreignKeyColor
+                      : style.relationshipColor,
+                width: '10px',
+                height: '10px',
+                right: '-5px',
+              }}
+            />
           </div>
         ))}
       </div>

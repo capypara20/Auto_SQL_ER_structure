@@ -35,6 +35,7 @@ export interface DiagramStyle {
   tableBodyText: string;
   primaryKeyColor: string;
   foreignKeyColor: string;
+  primaryForeignKeyColor: string; // 主キー+外部キーの複合キー用
   relationshipColor: string;
   relationshipWidth: number;
   edgeType: EdgeType;
@@ -54,6 +55,7 @@ export const defaultStyle: DiagramStyle = {
   tableBodyText: '#1e293b',
   primaryKeyColor: '#fbbf24',
   foreignKeyColor: '#8b5cf6',
+  primaryForeignKeyColor: '#10b981', // 緑色：主キー+外部キー
   relationshipColor: '#64748b',
   relationshipWidth: 2,
   edgeType: 'smoothstep',
