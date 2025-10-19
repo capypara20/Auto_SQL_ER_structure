@@ -4,6 +4,8 @@ import {
   exportDiagramAsSVG,
   exportDiagramAsPDF,
   exportDiagramAsMarkdown,
+  exportDiagramAsMermaid,
+  exportDiagramAsPlantUML,
 } from '../utils/exportDiagram';
 import { Table, Relationship } from '../types';
 import { DIAGRAM_CONTAINER_ID, DEFAULT_EXPORT_FILENAMES, ERROR_MESSAGES } from '../constants/diagram';
@@ -19,6 +21,8 @@ interface UseDiagramExportReturn {
   handleExportSVG: () => Promise<void>;
   handleExportPDF: () => Promise<void>;
   handleExportMarkdown: () => void;
+  handleExportMermaid: () => void;
+  handleExportPlantUML: () => void;
 }
 
 export const useDiagramExport = ({
@@ -70,10 +74,28 @@ export const useDiagramExport = ({
     }
   }, [tables, relationships]);
 
+  const handleExportMermaid = useCallback(() => {
+    try {
+      exportDiagramAsMermaid(tables, relationships, DEFAULT_EXPORT_FILENAMES.mermaid);
+    } catch (error) {
+      alert(ERROR_MESSAGES.exportMermaidFailed);
+    }
+  }, [tables, relationships]);
+
+  const handleExportPlantUML = useCallback(() => {
+    try {
+      exportDiagramAsPlantUML(tables, relationships, DEFAULT_EXPORT_FILENAMES.plantuml);
+    } catch (error) {
+      alert(ERROR_MESSAGES.exportPlantUMLFailed);
+    }
+  }, [tables, relationships]);
+
   return {
     handleExportPNG,
     handleExportSVG,
     handleExportPDF,
     handleExportMarkdown,
+    handleExportMermaid,
+    handleExportPlantUML,
   };
 };

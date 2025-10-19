@@ -16,7 +16,7 @@ function App() {
 
   // カスタムフック
   const { handleFileUpload: uploadFile } = useFileUpload();
-  const { handleExportPNG, handleExportSVG, handleExportPDF, handleExportMarkdown } =
+  const { handleExportPNG, handleExportSVG, handleExportPDF, handleExportMarkdown, handleExportMermaid, handleExportPlantUML } =
     useDiagramExport({
       backgroundColor: style.backgroundColor,
       tables,
@@ -46,6 +46,8 @@ function App() {
         onExportSVG={handleExportSVG}
         onExportPDF={handleExportPDF}
         onExportMarkdown={handleExportMarkdown}
+        onExportMermaid={handleExportMermaid}
+        onExportPlantUML={handleExportPlantUML}
       />
 
       {/* メインコンテンツ */}

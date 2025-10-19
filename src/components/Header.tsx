@@ -10,6 +10,8 @@ interface HeaderProps {
   onExportSVG: () => void;
   onExportPDF: () => void;
   onExportMarkdown: () => void;
+  onExportMermaid: () => void;
+  onExportPlantUML: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,6 +23,8 @@ const Header: React.FC<HeaderProps> = ({
   onExportSVG,
   onExportPDF,
   onExportMarkdown,
+  onExportMermaid,
+  onExportPlantUML,
 }) => {
   return (
     <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
@@ -72,6 +76,20 @@ const Header: React.FC<HeaderProps> = ({
                 >
                   <FileCode size={18} />
                   MD
+                </button>
+                <button
+                  onClick={onExportMermaid}
+                  className="bg-teal-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center gap-2"
+                >
+                  <FileCode size={18} />
+                  Mermaid
+                </button>
+                <button
+                  onClick={onExportPlantUML}
+                  className="bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-600 transition-colors flex items-center gap-2"
+                >
+                  <FileCode size={18} />
+                  PlantUML
                 </button>
               </>
             )}

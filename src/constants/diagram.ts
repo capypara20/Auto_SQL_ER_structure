@@ -7,6 +7,8 @@ export const DEFAULT_EXPORT_FILENAMES = {
   svg: 'er-diagram.svg',
   pdf: 'er-diagram.pdf',
   markdown: 'er-diagram.md',
+  mermaid: 'er-diagram.mmd',
+  plantuml: 'er-diagram.puml',
 } as const;
 
 export const ERROR_MESSAGES = {
@@ -16,4 +18,6 @@ export const ERROR_MESSAGES = {
   exportSvgFailed: 'SVG形式でのエクスポートに失敗しました。',
   exportPdfFailed: 'PDF形式でのエクスポートに失敗しました。',
   exportMarkdownFailed: 'Markdown形式でのエクスポートに失敗しました。',
+  exportMermaidFailed: 'Mermaid形式でのエクスポートに失敗しました。',
+  exportPlantUMLFailed: 'PlantUML形式でのエクスポートに失敗しました。',
 } as const;

@@ -107,9 +107,135 @@ export async function exportDiagramAsPDF(elementId: string, filename: string = '
   }
 }
 
-export function exportDiagramAsMarkdown(
+export function exportDiagramAsPlantUML(
   tables: Table[],
   relationships: Relationship[],
+  filename: string = 'er-diagram.puml'
+) {
+  try {
+    let puml = '@startuml\n';
+    puml += '!define Table(name,desc) class name as "desc" << (T,#FFAAAA) >>\n';
+    puml += '!define primary_key(x) <b>x</b>\n';
+    puml += '!define foreign_key(x) <i>x</i>\n';
+    puml += '!define column(x) x\n';
+    puml += 'hide methods\n';
+    puml += 'hide stereotypes\n\n';
+
+    // テーブル定義
+    tables.forEach((table) => {
+      puml += `entity "${table.name}" {\n`;
+
+      table.columns.forEach((column) => {
+        let columnDef = '';
+
+        // 主キー+外部キーの場合
+        if (column.isPrimaryKey && column.isForeignKey) {
+          columnDef = `  * <b><i>${column.name}</i></b> : ${column.type}`;
+        }
+        // 主キーのみ
+        else if (column.isPrimaryKey) {
+          columnDef = `  * <b>${column.name}</b> : ${column.type}`;
+        }
+        // 外部キーのみ
+        else if (column.isForeignKey) {
+          columnDef = `  + <i>${column.name}</i> : ${column.type}`;
+        }
+        // 通常のカラム
+        else {
+          columnDef = `  ${column.name} : ${column.type}`;
+        }
+
+        // NULL許可の表記
+        if (!column.isNullable) {
+          columnDef += ' NOT NULL';
+        }
+
+        puml += columnDef + '\n';
+      });
+
+      puml += '}\n\n';
+    });
+
+    // リレーション
+    relationships.forEach((rel) => {
+      // PlantUMLのリレーション表記: source }|--|| target
+      // 1対多: }|--||  多対多: }|--|{
+      let relationType = '';
+      switch (rel.type) {
+        case 'one-to-one':
+          relationType = '||--||';
+          break;
+        case 'one-to-many':
+          relationType = '}|--||';
+          break;
+        case 'many-to-many':
+          relationType = '}|--|{';
+          break;
+        default:
+          relationType = '--';
+      }
+
+      puml += `"${rel.source}" ${relationType} "${rel.target}" : ${rel.sourceColumn} -> ${rel.targetColumn}\n`;
+    });
+
+    puml += '\n@enduml\n';
+
+    // ダウンロード
+    const blob = new Blob([puml], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to export PlantUML:', error);
+    throw error;
+  }
+}
+
+export function exportDiagramAsMermaid(
+  tables: Table[],
+  relationships: Relationship[],
+  filename: string = 'er-diagram.mmd'
+) {
+  try {
+    let mermaid = 'erDiagram\n';
+
+    // テーブル定義
+    tables.forEach((table) => {
+      mermaid += `    ${table.name} {\n`;
+      table.columns.forEach((column) => {
+        const type = column.type.replace(/\(.*\)/, '');
+        const pk = column.isPrimaryKey ? ' PK' : '';
+        const fk = column.isForeignKey ? ' FK' : '';
+        mermaid += `        ${type} ${column.name}${pk}${fk}\n`;
+      });
+      mermaid += `    }\n`;
+    });
+
+    // リレーション
+    relationships.forEach((rel) => {
+      mermaid += `    ${rel.source} ||--o{ ${rel.target} : "${rel.sourceColumn} -> ${rel.targetColumn}"\n`;
+    });
+
+    // ダウンロード
+    const blob = new Blob([mermaid], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Failed to export Mermaid:', error);
+    throw error;
+  }
+}
+
+export function exportDiagramAsMarkdown(
+  tables: Table[],
+  _relationships: Relationship[], // 将来の拡張用に保持
   filename: string = 'er-diagram.md'
 ) {
   try {
@@ -138,44 +264,7 @@ export function exportDiagramAsMarkdown(
       markdown += '\n';
     });
 
-    // リレーションシップ
-    if (relationships.length > 0) {
-      markdown += '## リレーションシップ\n\n';
-      markdown += '```mermaid\n';
-      markdown += 'erDiagram\n';
-
-      // テーブル定義
-      tables.forEach((table) => {
-        markdown += `    ${table.name} {\n`;
-        table.columns.forEach((column) => {
-          const type = column.type.replace(/\(.*\)/, '');
-          const pk = column.isPrimaryKey ? ' PK' : '';
-          const fk = column.isForeignKey ? ' FK' : '';
-          markdown += `        ${type} ${column.name}${pk}${fk}\n`;
-        });
-        markdown += `    }\n`;
-      });
-
-      // リレーション
-      relationships.forEach((rel) => {
-        markdown += `    ${rel.source} ||--o{ ${rel.target} : "${rel.sourceColumn} -> ${rel.targetColumn}"\n`;
-      });
-
-      markdown += '```\n\n';
-
-      // リレーションシップの詳細
-      markdown += '### リレーションシップの詳細\n\n';
-      markdown += '| ソーステーブル | ソースカラム | ターゲットテーブル | ターゲットカラム | タイプ |\n';
-      markdown += '|----------------|--------------|-------------------|-----------------|--------|\n';
-
-      relationships.forEach((rel) => {
-        markdown += `| ${rel.source} | ${rel.sourceColumn} | ${rel.target} | ${rel.targetColumn} | ${rel.type} |\n`;
-      });
-
-      markdown += '\n';
-    }
-
-    // SQL定義
+    // SQL定義の再構築
     markdown += '## SQL定義の再構築\n\n';
     markdown += '```sql\n';
     tables.forEach((table) => {
