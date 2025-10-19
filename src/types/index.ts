@@ -8,6 +8,9 @@ export interface Column {
     table: string;
     column: string;
   };
+  // カラムのメタデータ（ユーザーが編集可能）
+  displayName?: string;  // 日本語表示名
+  description?: string;  // カラムの説明
 }
 
 export interface Table {

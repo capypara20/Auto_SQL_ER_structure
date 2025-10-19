@@ -5,7 +5,7 @@ import Header from './components/Header';
 import EmptyState from './components/EmptyState';
 import { useFileUpload } from './hooks/useFileUpload';
 import { useDiagramExport } from './hooks/useDiagramExport';
-import { Table, Relationship, DiagramStyle, defaultStyle } from './types';
+import { Table, Relationship, DiagramStyle, defaultStyle, Column } from './types';
 import { DIAGRAM_CONTAINER_ID } from './constants/diagram';
 
 function App() {
@@ -16,12 +16,20 @@ function App() {
 
   // カスタムフック
   const { handleFileUpload: uploadFile } = useFileUpload();
-  const { handleExportPNG, handleExportSVG, handleExportPDF, handleExportMarkdown, handleExportMermaid, handleExportPlantUML } =
-    useDiagramExport({
-      backgroundColor: style.backgroundColor,
-      tables,
-      relationships,
-    });
+  const {
+    handleExportPNG,
+    handleExportSVG,
+    handleExportPDF,
+    handleExportMarkdown,
+    handleExportMermaid,
+    handleExportPlantUML,
+    handleExportCSV,
+    handleExportTSV,
+  } = useDiagramExport({
+    backgroundColor: style.backgroundColor,
+    tables,
+    relationships,
+  });
 
   // ファイルアップロード処理
   const handleFileUpload = useCallback(
@@ -32,6 +40,26 @@ function App() {
       });
     },
     [uploadFile]
+  );
+
+  // カラム更新処理
+  const handleUpdateColumn = useCallback(
+    (tableName: string, columnName: string, updates: Partial<Column>) => {
+      setTables((prevTables) =>
+        prevTables.map((table) => {
+          if (table.name === tableName) {
+            return {
+              ...table,
+              columns: table.columns.map((column) =>
+                column.name === columnName ? { ...column, ...updates } : column
+              ),
+            };
+          }
+          return table;
+        })
+      );
+    },
+    []
   );
 
   return (
@@ -48,6 +76,8 @@ function App() {
         onExportMarkdown={handleExportMarkdown}
         onExportMermaid={handleExportMermaid}
         onExportPlantUML={handleExportPlantUML}
+        onExportCSV={handleExportCSV}
+        onExportTSV={handleExportTSV}
       />
 
       {/* メインコンテンツ */}
@@ -58,7 +88,12 @@ function App() {
             <EmptyState />
           ) : (
             <div id={DIAGRAM_CONTAINER_ID} className="w-full h-full">
-              <ERDiagram tables={tables} relationships={relationships} style={style} />
+              <ERDiagram
+                tables={tables}
+                relationships={relationships}
+                style={style}
+                onUpdateColumn={handleUpdateColumn}
+              />
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import {
   exportDiagramAsMermaid,
   exportDiagramAsPlantUML,
 } from '../utils/exportDiagram';
+import { exportTableSchemaAsCSV, exportTableSchemaAsTSV } from '../utils/exportTableSchema';
 import { Table, Relationship } from '../types';
 import { DIAGRAM_CONTAINER_ID, DEFAULT_EXPORT_FILENAMES, ERROR_MESSAGES } from '../constants/diagram';
 
@@ -23,6 +24,8 @@ interface UseDiagramExportReturn {
   handleExportMarkdown: () => void;
   handleExportMermaid: () => void;
   handleExportPlantUML: () => void;
+  handleExportCSV: () => void;
+  handleExportTSV: () => void;
 }
 
 export const useDiagramExport = ({
@@ -90,6 +93,22 @@ export const useDiagramExport = ({
     }
   }, [tables, relationships]);
 
+  const handleExportCSV = useCallback(() => {
+    try {
+      exportTableSchemaAsCSV(tables, DEFAULT_EXPORT_FILENAMES.csv);
+    } catch (error) {
+      alert(ERROR_MESSAGES.exportCSVFailed);
+    }
+  }, [tables]);
+
+  const handleExportTSV = useCallback(() => {
+    try {
+      exportTableSchemaAsTSV(tables, DEFAULT_EXPORT_FILENAMES.tsv);
+    } catch (error) {
+      alert(ERROR_MESSAGES.exportTSVFailed);
+    }
+  }, [tables]);
+
   return {
     handleExportPNG,
     handleExportSVG,
@@ -97,5 +116,7 @@ export const useDiagramExport = ({
     handleExportMarkdown,
     handleExportMermaid,
     handleExportPlantUML,
+    handleExportCSV,
+    handleExportTSV,
   };
 };

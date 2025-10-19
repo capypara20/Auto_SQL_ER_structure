@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Download, Eye, EyeOff, FileText, FileCode } from 'lucide-react';
+import { Upload, Download, Eye, EyeOff, FileText, FileCode, Table } from 'lucide-react';
 
 interface HeaderProps {
   showStylePanel: boolean;
@@ -12,6 +12,8 @@ interface HeaderProps {
   onExportMarkdown: () => void;
   onExportMermaid: () => void;
   onExportPlantUML: () => void;
+  onExportCSV: () => void;
+  onExportTSV: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -25,6 +27,8 @@ const Header: React.FC<HeaderProps> = ({
   onExportMarkdown,
   onExportMermaid,
   onExportPlantUML,
+  onExportCSV,
+  onExportTSV,
 }) => {
   return (
     <header className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
@@ -90,6 +94,20 @@ const Header: React.FC<HeaderProps> = ({
                 >
                   <FileCode size={18} />
                   PlantUML
+                </button>
+                <button
+                  onClick={onExportCSV}
+                  className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center gap-2"
+                >
+                  <Table size={18} />
+                  CSV
+                </button>
+                <button
+                  onClick={onExportTSV}
+                  className="bg-cyan-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-cyan-600 transition-colors flex items-center gap-2"
+                >
+                  <Table size={18} />
+                  TSV
                 </button>
               </>
             )}

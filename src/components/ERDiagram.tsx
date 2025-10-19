@@ -16,19 +16,21 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
 import EdgeEditPanel from './EdgeEditPanel';
-import { Table, Relationship, DiagramStyle } from '../types';
+import ColumnEditPanel from './ColumnEditPanel';
+import { Table, Relationship, DiagramStyle, Column } from '../types';
 
 interface ERDiagramProps {
   tables: Table[];
   relationships: Relationship[];
   style: DiagramStyle;
+  onUpdateColumn: (tableName: string, columnName: string, updates: Partial<Column>) => void;
 }
 
 const nodeTypes = {
   tableNode: TableNode,
 };
 
-const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) => {
+const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn }) => {
   // テーブルをノードに変換
   const initialNodes: Node[] = useMemo(() => {
     return tables.map((table, index) => ({
@@ -73,6 +75,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -105,7 +108,17 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
   // エッジをクリックしたときの処理
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
+    setSelectedTable(null); // エッジ選択時はテーブル選択を解除
   }, []);
+
+  // ノード（テーブル）をクリックしたときの処理
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    const table = tables.find((t) => t.name === node.id);
+    if (table) {
+      setSelectedTable(table);
+      setSelectedEdge(null); // テーブル選択時はエッジ選択を解除
+    }
+  }, [tables]);
 
   // エッジの再接続（付け替え）処理
   const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
@@ -181,11 +194,44 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
     });
   }, [setEdges]);
 
-  // tablesまたはrelationshipsが変更されたら完全に再構築
+  // tablesが変更されたらノードのデータを更新（位置は保持）
   React.useEffect(() => {
-    setNodes(initialNodes);
+    setNodes((currentNodes) => {
+      // 既存のノードIDのマップを作成
+      const existingNodesMap = new Map(currentNodes.map(node => [node.id, node]));
+
+      // 新しいテーブルリストに基づいてノードを更新
+      const updatedNodes = tables.map((table, index) => {
+        const existingNode = existingNodesMap.get(table.name);
+
+        if (existingNode) {
+          // 既存ノードがある場合は位置を保持してデータのみ更新
+          return {
+            ...existingNode,
+            data: { table, style },
+          };
+        } else {
+          // 新しいノードの場合は初期位置を設定
+          return {
+            id: table.name,
+            type: 'tableNode',
+            position: {
+              x: (index % 3) * 350 + 50,
+              y: Math.floor(index / 3) * 300 + 50,
+            },
+            data: { table, style },
+          };
+        }
+      });
+
+      return updatedNodes;
+    });
+  }, [tables, style, setNodes]);
+
+  // relationshipsが変更されたらエッジを完全に再構築
+  React.useEffect(() => {
     setEdges(initialEdges);
-  }, [initialNodes, initialEdges, setNodes, setEdges]);
+  }, [initialEdges, setEdges]);
 
   // スタイルが変更されたらノードデータとエッジを更新
   React.useEffect(() => {
@@ -229,6 +275,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
         onConnect={onConnect}
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
+        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
@@ -255,6 +302,13 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
         onDeleteEdge={handleDeleteEdge}
         onReverseEdge={handleReverseEdge}
         onClose={() => setSelectedEdge(null)}
+      />
+
+      {/* カラム編集パネル */}
+      <ColumnEditPanel
+        table={selectedTable}
+        onClose={() => setSelectedTable(null)}
+        onUpdateColumn={onUpdateColumn}
       />
     </div>
   );

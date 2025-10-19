@@ -9,6 +9,8 @@ export const DEFAULT_EXPORT_FILENAMES = {
   markdown: 'er-diagram.md',
   mermaid: 'er-diagram.mmd',
   plantuml: 'er-diagram.puml',
+  csv: 'table-schema.csv',
+  tsv: 'table-schema.tsv',
 } as const;
 
 export const ERROR_MESSAGES = {
@@ -20,4 +22,6 @@ export const ERROR_MESSAGES = {
   exportMarkdownFailed: 'Markdown形式でのエクスポートに失敗しました。',
   exportMermaidFailed: 'Mermaid形式でのエクスポートに失敗しました。',
   exportPlantUMLFailed: 'PlantUML形式でのエクスポートに失敗しました。',
+  exportCSVFailed: 'CSV形式でのエクスポートに失敗しました。',
+  exportTSVFailed: 'TSV形式でのエクスポートに失敗しました。',
 } as const;
