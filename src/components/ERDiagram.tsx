@@ -4,12 +4,14 @@ import ReactFlow, {
   Edge,
   Controls,
   Background,
+  MiniMap,
   useNodesState,
   useEdgesState,
   addEdge,
   Connection,
   BackgroundVariant,
   MarkerType,
+  ConnectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
@@ -62,8 +64,8 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
         fontFamily: style.fontFamily,
       },
       labelBgStyle: {
-        fill: style.backgroundColor,
-        fillOpacity: 0.8,
+        fill: '#ffffff',
+        fillOpacity: 0.9,
       },
     }));
   }, [relationships, style]);
@@ -91,8 +93,8 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
           fontFamily: style.fontFamily,
         },
         labelBgStyle: {
-          fill: style.backgroundColor,
-          fillOpacity: 0.8,
+          fill: '#ffffff',
+          fillOpacity: 0.9,
         },
       };
       setEdges((eds) => addEdge(newEdge as any, eds));
@@ -104,6 +106,24 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
   }, []);
+
+  // エッジの再接続（付け替え）処理
+  const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (edge.id === oldEdge.id) {
+          return {
+            ...edge,
+            source: newConnection.source || edge.source,
+            target: newConnection.target || edge.target,
+            sourceHandle: newConnection.sourceHandle || edge.sourceHandle,
+            targetHandle: newConnection.targetHandle || edge.targetHandle,
+          };
+        }
+        return edge;
+      })
+    );
+  }, [setEdges]);
 
   // エッジの更新
   const handleUpdateEdge = useCallback((edgeId: string, updates: Partial<Edge>) => {
@@ -192,8 +212,8 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
           fontFamily: style.fontFamily,
         },
         labelBgStyle: {
-          fill: style.backgroundColor,
-          fillOpacity: 0.8,
+          fill: '#ffffff',
+          fillOpacity: 0.9,
         },
       }))
     );
@@ -207,15 +227,25 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style }) =
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
-        connectionMode="loose"
+        connectionMode={ConnectionMode.Loose}
         fitView
         minZoom={0.1}
         maxZoom={2}
       >
         <Controls />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        <MiniMap
+          nodeColor={(node) => {
+            const nodeData = node.data as any;
+            return nodeData?.style?.tableHeaderBg || style.tableHeaderBg;
+          }}
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+        />
       </ReactFlow>
 
       {/* エッジ編集パネル */}

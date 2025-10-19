@@ -15,7 +15,7 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
   let match;
 
   while ((match = createTableRegex.exec(normalizedSQL)) !== null) {
-    const schemaName = match[1]; // スキーマ名（あれば）
+    // const schemaName = match[1]; // スキーマ名（あれば）- 将来の機能拡張用
     const tableName = match[2];  // テーブル名
     const tableContent = match[3]; // テーブル定義内容
 
@@ -123,7 +123,7 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
         let columnType = columnMatch[2];
 
         // SERIAL/BIGSERIALは自動的に主キーとして扱うことが多いが、明示的なPKチェックも行う
-        const isSerialType = columnType.match(/^(BIG)?SERIAL$/i);
+        // const isSerialType = columnType.match(/^(BIG)?SERIAL$/i); // 将来の機能拡張用
 
         // カラムレベルのPRIMARY KEY
         const isInlinePK = line.match(/PRIMARY\s+KEY/i) !== null;

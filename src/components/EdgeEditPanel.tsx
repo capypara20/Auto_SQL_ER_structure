@@ -22,6 +22,7 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
 
   const edgeColor = (selectedEdge.style as any)?.stroke || '#64748b';
   const edgeWidth = (selectedEdge.style as any)?.strokeWidth || 2;
+  const strokeDasharray = (selectedEdge.style as any)?.strokeDasharray || '0';
   const edgeType = selectedEdge.type || 'default';
   const isAnimated = selectedEdge.animated || false;
 
@@ -125,6 +126,26 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
             <option value="step">階段</option>
             <option value="smoothstep">滑らかな階段</option>
             <option value="simplebezier">ベジェ曲線</option>
+          </select>
+        </div>
+
+        {/* 線のスタイル（実線/破線/点線） */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">線のスタイル</label>
+          <select
+            value={strokeDasharray}
+            onChange={(e) => {
+              onUpdateEdge(selectedEdge.id, {
+                style: { ...selectedEdge.style, strokeDasharray: e.target.value },
+              });
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          >
+            <option value="0">実線</option>
+            <option value="5 5">破線</option>
+            <option value="2 2">点線</option>
+            <option value="10 5">長い破線</option>
+            <option value="5 2 2 2">一点鎖線</option>
           </select>
         </div>
 

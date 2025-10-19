@@ -8,7 +8,7 @@ interface StylePanelProps {
 }
 
 const StylePanel: React.FC<StylePanelProps> = ({ style, onChange }) => {
-  const handleChange = (key: keyof DiagramStyle, value: string | number) => {
+  const handleChange = (key: keyof DiagramStyle, value: string | number | boolean) => {
     onChange({ ...style, [key]: value });
   };
 

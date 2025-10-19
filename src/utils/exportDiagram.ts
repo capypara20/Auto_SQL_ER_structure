@@ -2,7 +2,7 @@ import { toPng, toSvg } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { Table, Relationship } from '../types';
 
-export async function exportDiagramAsPNG(elementId: string, filename: string = 'er-diagram.png') {
+export async function exportDiagramAsPNG(elementId: string, filename: string = 'er-diagram.png', backgroundColor: string = '#f8fafc') {
   const element = document.querySelector(`#${elementId} .react-flow__viewport`) as HTMLElement;
 
   if (!element) {
@@ -11,7 +11,7 @@ export async function exportDiagramAsPNG(elementId: string, filename: string = '
 
   try {
     const dataUrl = await toPng(element, {
-      backgroundColor: '#ffffff',
+      backgroundColor,
       quality: 1,
       pixelRatio: 2,
     });
@@ -26,7 +26,7 @@ export async function exportDiagramAsPNG(elementId: string, filename: string = '
   }
 }
 
-export async function exportDiagramAsSVG(elementId: string, filename: string = 'er-diagram.svg') {
+export async function exportDiagramAsSVG(elementId: string, filename: string = 'er-diagram.svg', backgroundColor: string = '#f8fafc') {
   const element = document.querySelector(`#${elementId} .react-flow__viewport`) as HTMLElement;
 
   if (!element) {
@@ -35,7 +35,7 @@ export async function exportDiagramAsSVG(elementId: string, filename: string = '
 
   try {
     const dataUrl = await toSvg(element, {
-      backgroundColor: '#ffffff',
+      backgroundColor,
     });
 
     const link = document.createElement('a');
@@ -48,7 +48,7 @@ export async function exportDiagramAsSVG(elementId: string, filename: string = '
   }
 }
 
-export async function exportDiagramAsPDF(elementId: string, filename: string = 'er-diagram.pdf') {
+export async function exportDiagramAsPDF(elementId: string, filename: string = 'er-diagram.pdf', backgroundColor: string = '#f8fafc') {
   const element = document.querySelector(`#${elementId} .react-flow__viewport`) as HTMLElement;
 
   if (!element) {
@@ -58,7 +58,7 @@ export async function exportDiagramAsPDF(elementId: string, filename: string = '
   try {
     // 高解像度の画像を生成
     const dataUrl = await toPng(element, {
-      backgroundColor: '#ffffff',
+      backgroundColor,
       quality: 1,
       pixelRatio: 3,
     });
