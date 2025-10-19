@@ -1,6 +1,5 @@
 import React from 'react';
 import { Edge } from 'reactflow';
-import { EdgeType } from '../types';
 import { Trash2, ArrowLeftRight } from 'lucide-react';
 
 interface EdgeEditPanelProps {
@@ -23,7 +22,6 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
   const edgeColor = (selectedEdge.style as any)?.stroke || '#64748b';
   const edgeWidth = (selectedEdge.style as any)?.strokeWidth || 2;
   const strokeDasharray = (selectedEdge.style as any)?.strokeDasharray || '0';
-  const edgeType = selectedEdge.type || 'default';
   const isAnimated = selectedEdge.animated || false;
 
   return (
@@ -109,14 +107,17 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
           />
         </div>
 
-        {/* 線のタイプ */}
+        {/* 線のタイプ - カスタムエッジの場合はdataに保存 */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">線の形式</label>
           <select
-            value={edgeType}
+            value={(selectedEdge.data as any)?.pathType || 'default'}
             onChange={(e) => {
               onUpdateEdge(selectedEdge.id, {
-                type: e.target.value as EdgeType,
+                data: {
+                  ...selectedEdge.data,
+                  pathType: e.target.value,
+                },
               });
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"

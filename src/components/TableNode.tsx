@@ -122,18 +122,6 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
           </div>
         ))}
       </div>
-
-      {/* React Flow用のハンドル */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        style={{ background: style.relationshipColor }}
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        style={{ background: style.relationshipColor }}
-      />
     </div>
   );
 };

@@ -15,6 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
+import RelationshipEdge from './RelationshipEdge';
 import EdgeEditPanel from './EdgeEditPanel';
 import ColumnEditPanel from './ColumnEditPanel';
 import { Table, Relationship, DiagramStyle, Column } from '../types';
@@ -28,6 +29,10 @@ interface ERDiagramProps {
 
 const nodeTypes = {
   tableNode: TableNode,
+};
+
+const edgeTypes = {
+  relationship: RelationshipEdge,
 };
 
 const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn }) => {
@@ -46,30 +51,51 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
 
   // リレーションシップをエッジに変換
   const initialEdges: Edge[] = useMemo(() => {
-    return relationships.map((rel) => ({
-      id: rel.id,
-      source: rel.source,
-      target: rel.target,
-      sourceHandle: `${rel.source}-${rel.sourceColumn}-right`,
-      targetHandle: `${rel.target}-${rel.targetColumn}-left`,
-      type: style.edgeType,
-      animated: style.edgeAnimated,
-      style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: style.relationshipColor,
-      },
-      label: `${rel.sourceColumn} → ${rel.targetColumn}`,
-      labelStyle: {
-        fill: style.tableBodyText,
-        fontSize: style.fontSize - 2,
-        fontFamily: style.fontFamily,
-      },
-      labelBgStyle: {
-        fill: '#ffffff',
-        fillOpacity: 0.9,
-      },
-    }));
+    return relationships.map((rel) => {
+      // カーディナリティの決定
+      let sourceCardinality = '1';
+      let targetCardinality = 'N';
+
+      if (rel.type === 'one-to-one') {
+        sourceCardinality = '1';
+        targetCardinality = '1';
+      } else if (rel.type === 'one-to-many') {
+        sourceCardinality = '1';
+        targetCardinality = 'N';
+      } else if (rel.type === 'many-to-many') {
+        sourceCardinality = 'M';
+        targetCardinality = 'N';
+      }
+
+      return {
+        id: rel.id,
+        source: rel.source,
+        target: rel.target,
+        sourceHandle: `${rel.source}-${rel.sourceColumn}-right`,
+        targetHandle: `${rel.target}-${rel.targetColumn}-left`,
+        type: 'relationship',
+        animated: style.edgeAnimated,
+        style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: style.relationshipColor,
+        },
+        data: {
+          sourceCardinality,
+          targetCardinality,
+        },
+        label: `${rel.sourceColumn} → ${rel.targetColumn}`,
+        labelStyle: {
+          fill: style.tableBodyText,
+          fontSize: style.fontSize - 2,
+          fontFamily: style.fontFamily,
+        },
+        labelBgStyle: {
+          fill: '#ffffff',
+          fillOpacity: 0.9,
+        },
+      };
+    });
   }, [relationships, style]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -82,12 +108,17 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
       const newEdge = {
         ...params,
         id: `edge-${params.source}-${params.sourceHandle}-${params.target}-${params.targetHandle}-${Date.now()}`,
-        type: style.edgeType,
+        type: 'relationship', // カスタムエッジを使用
         animated: style.edgeAnimated,
         style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: style.relationshipColor,
+        },
+        data: {
+          sourceCardinality: '1',
+          targetCardinality: 'N',
+          pathType: 'default',
         },
         label: 'カスタム接続',
         labelStyle: {
@@ -194,41 +225,41 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
     });
   }, [setEdges]);
 
-  // tablesが変更されたらノードのデータを更新（位置は保持）
+  // 初回レンダリング時またはテーブルが新規追加/削除されたときのみノードを再構築
   React.useEffect(() => {
     setNodes((currentNodes) => {
-      // 既存のノードIDのマップを作成
+      // 現在のノードが空の場合（初回）、または数が違う場合は再構築
+      if (currentNodes.length === 0 || currentNodes.length !== tables.length) {
+        return initialNodes;
+      }
+
+      // それ以外の場合は位置を保持してデータのみ更新
       const existingNodesMap = new Map(currentNodes.map(node => [node.id, node]));
 
-      // 新しいテーブルリストに基づいてノードを更新
-      const updatedNodes = tables.map((table, index) => {
+      return tables.map((table) => {
         const existingNode = existingNodesMap.get(table.name);
-
         if (existingNode) {
-          // 既存ノードがある場合は位置を保持してデータのみ更新
           return {
             ...existingNode,
             data: { table, style },
           };
-        } else {
-          // 新しいノードの場合は初期位置を設定
-          return {
-            id: table.name,
-            type: 'tableNode',
-            position: {
-              x: (index % 3) * 350 + 50,
-              y: Math.floor(index / 3) * 300 + 50,
-            },
-            data: { table, style },
-          };
         }
+        // 新しいテーブルが追加された場合（通常はここには来ない）
+        const index = tables.indexOf(table);
+        return {
+          id: table.name,
+          type: 'tableNode',
+          position: {
+            x: (index % 3) * 350 + 50,
+            y: Math.floor(index / 3) * 300 + 50,
+          },
+          data: { table, style },
+        };
       });
-
-      return updatedNodes;
     });
-  }, [tables, style, setNodes]);
+  }, [tables, style, initialNodes, setNodes]);
 
-  // relationshipsが変更されたらエッジを完全に再構築
+  // relationshipsが変更されたらエッジを再構築
   React.useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
@@ -245,7 +276,8 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
     setEdges((eds) =>
       eds.map((edge) => ({
         ...edge,
-        type: style.edgeType,
+        // typeは変更しない（relationshipエッジを保持）
+        // pathTypeをdata内で管理
         animated: style.edgeAnimated,
         style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
         markerEnd: {
@@ -277,6 +309,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         onEdgeClick={onEdgeClick}
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
         minZoom={0.1}
