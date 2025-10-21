@@ -25,6 +25,9 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
   const strokeDasharray = (selectedEdge.style as any)?.strokeDasharray || '0';
   const edgeType = selectedEdge.type || 'default';
   const isAnimated = selectedEdge.animated || false;
+  // ラベルのオフセット（ピクセル単位）
+  const labelOffsetX = (selectedEdge.data as any)?.labelOffsetX ?? 0;
+  const labelOffsetY = (selectedEdge.data as any)?.labelOffsetY ?? 0;
 
   return (
     <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-80 z-10">
@@ -165,6 +168,94 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
           <label htmlFor="edge-animated" className="text-sm font-medium text-gray-700">
             アニメーション
           </label>
+        </div>
+
+        {/* ラベル位置調整 */}
+        <div className="space-y-2 border-t pt-3">
+          <label className="block text-sm font-medium text-gray-700">
+            ラベル位置調整
+          </label>
+
+          {/* 水平オフセット */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-gray-600">
+              <span>水平オフセット: {labelOffsetX}px</span>
+            </div>
+            <input
+              type="range"
+              min="-200"
+              max="200"
+              step="5"
+              value={labelOffsetX}
+              onChange={(e) => {
+                const newData = { ...(selectedEdge.data || {}), labelOffsetX: Number(e.target.value) };
+                const transformValue = `translate(${Number(e.target.value)}px, ${labelOffsetY}px)`;
+                onUpdateEdge(selectedEdge.id, {
+                  data: newData,
+                  labelStyle: {
+                    ...selectedEdge.labelStyle,
+                    transform: transformValue,
+                  },
+                  labelBgStyle: {
+                    ...selectedEdge.labelBgStyle,
+                    transform: transformValue,
+                  },
+                } as any);
+              }}
+              className="w-full"
+            />
+          </div>
+
+          {/* 垂直オフセット */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-gray-600">
+              <span>垂直オフセット: {labelOffsetY}px</span>
+            </div>
+            <input
+              type="range"
+              min="-200"
+              max="200"
+              step="5"
+              value={labelOffsetY}
+              onChange={(e) => {
+                const newData = { ...(selectedEdge.data || {}), labelOffsetY: Number(e.target.value) };
+                const transformValue = `translate(${labelOffsetX}px, ${Number(e.target.value)}px)`;
+                onUpdateEdge(selectedEdge.id, {
+                  data: newData,
+                  labelStyle: {
+                    ...selectedEdge.labelStyle,
+                    transform: transformValue,
+                  },
+                  labelBgStyle: {
+                    ...selectedEdge.labelBgStyle,
+                    transform: transformValue,
+                  },
+                } as any);
+              }}
+              className="w-full"
+            />
+          </div>
+
+          {/* リセットボタン */}
+          <button
+            onClick={() => {
+              const newData = { ...(selectedEdge.data || {}), labelOffsetX: 0, labelOffsetY: 0 };
+              onUpdateEdge(selectedEdge.id, {
+                data: newData,
+                labelStyle: {
+                  ...selectedEdge.labelStyle,
+                  transform: 'translate(0px, 0px)',
+                },
+                labelBgStyle: {
+                  ...selectedEdge.labelBgStyle,
+                  transform: 'translate(0px, 0px)',
+                },
+              } as any);
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            位置をリセット
+          </button>
         </div>
 
         {/* アクションボタン */}

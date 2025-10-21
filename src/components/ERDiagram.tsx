@@ -17,6 +17,8 @@ import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
 import EdgeEditPanel from './EdgeEditPanel';
 import ColumnEditPanel from './ColumnEditPanel';
+import TableStylePanel from './TableStylePanel';
+import DraggableEdge from './DraggableEdge';
 import { Table, Relationship, DiagramStyle, Column } from '../types';
 
 interface ERDiagramProps {
@@ -24,13 +26,18 @@ interface ERDiagramProps {
   relationships: Relationship[];
   style: DiagramStyle;
   onUpdateColumn: (tableName: string, columnName: string, updates: Partial<Column>) => void;
+  onUpdateTableStyle: (tableName: string, customStyle: Table['customStyle']) => void;
 }
 
 const nodeTypes = {
   tableNode: TableNode,
 };
 
-const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn }) => {
+const edgeTypes = {
+  draggable: DraggableEdge,
+};
+
+const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn, onUpdateTableStyle }) => {
   // テーブルをノードに変換
   const initialNodes: Node[] = useMemo(() => {
     return tables.map((table, index) => ({
@@ -52,7 +59,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
       target: rel.target,
       sourceHandle: `${rel.source}-${rel.sourceColumn}-right`,
       targetHandle: `${rel.target}-${rel.targetColumn}-left`,
-      type: style.edgeType,
+      type: 'draggable',
       animated: style.edgeAnimated,
       style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
       markerEnd: {
@@ -60,14 +67,9 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         color: style.relationshipColor,
       },
       label: `${rel.sourceColumn} → ${rel.targetColumn}`,
-      labelStyle: {
-        fill: style.tableBodyText,
-        fontSize: style.fontSize - 2,
-        fontFamily: style.fontFamily,
-      },
-      labelBgStyle: {
-        fill: '#ffffff',
-        fillOpacity: 0.9,
+      data: {
+        labelOffsetX: 0,
+        labelOffsetY: 0,
       },
     }));
   }, [relationships, style]);
@@ -76,13 +78,43 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [panelMode, setPanelMode] = useState<'column' | 'style' | null>(null);
+
+  // エッジラベルのドラッグイベントを処理
+  React.useEffect(() => {
+    const handleEdgeLabelDrag = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { edgeId, offsetX, offsetY } = customEvent.detail;
+
+      setEdges((eds) =>
+        eds.map((edge) => {
+          if (edge.id === edgeId) {
+            return {
+              ...edge,
+              data: {
+                ...edge.data,
+                labelOffsetX: offsetX,
+                labelOffsetY: offsetY,
+              },
+            };
+          }
+          return edge;
+        })
+      );
+    };
+
+    window.addEventListener('edgeLabelDrag', handleEdgeLabelDrag);
+    return () => {
+      window.removeEventListener('edgeLabelDrag', handleEdgeLabelDrag);
+    };
+  }, [setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => {
       const newEdge = {
         ...params,
         id: `edge-${params.source}-${params.sourceHandle}-${params.target}-${params.targetHandle}-${Date.now()}`,
-        type: style.edgeType,
+        type: 'draggable',
         animated: style.edgeAnimated,
         style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
         markerEnd: {
@@ -90,14 +122,9 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
           color: style.relationshipColor,
         },
         label: 'カスタム接続',
-        labelStyle: {
-          fill: style.tableBodyText,
-          fontSize: style.fontSize - 2,
-          fontFamily: style.fontFamily,
-        },
-        labelBgStyle: {
-          fill: '#ffffff',
-          fillOpacity: 0.9,
+        data: {
+          labelOffsetX: 0,
+          labelOffsetY: 0,
         },
       };
       setEdges((eds) => addEdge(newEdge as any, eds));
@@ -111,12 +138,23 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
     setSelectedTable(null); // エッジ選択時はテーブル選択を解除
   }, []);
 
-  // ノード（テーブル）をクリックしたときの処理
+  // ノード（テーブル）をダブルクリックしたときの処理（カラム編集）
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    const table = tables.find((t) => t.name === node.id);
+    if (table) {
+      setSelectedTable(table);
+      setSelectedEdge(null);
+      setPanelMode('column');
+    }
+  }, [tables]);
+
+  // ノード（テーブル）をクリックしたときの処理（スタイル編集）
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const table = tables.find((t) => t.name === node.id);
     if (table) {
       setSelectedTable(table);
-      setSelectedEdge(null); // テーブル選択時はエッジ選択を解除
+      setSelectedEdge(null);
+      setPanelMode('style');
     }
   }, [tables]);
 
@@ -276,7 +314,9 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
         minZoom={0.1}
@@ -287,7 +327,9 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         <MiniMap
           nodeColor={(node) => {
             const nodeData = node.data as any;
-            return nodeData?.style?.tableHeaderBg || style.tableHeaderBg;
+            const table = nodeData?.table as Table;
+            // テーブル個別の色設定があればそれを使用、なければデフォルト
+            return table?.customStyle?.headerBg || nodeData?.style?.tableHeaderBg || style.tableHeaderBg;
           }}
           nodeStrokeWidth={3}
           zoomable
@@ -304,12 +346,29 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         onClose={() => setSelectedEdge(null)}
       />
 
-      {/* カラム編集パネル */}
-      <ColumnEditPanel
-        table={selectedTable}
-        onClose={() => setSelectedTable(null)}
-        onUpdateColumn={onUpdateColumn}
-      />
+      {/* カラム編集パネル（ダブルクリック時） */}
+      {panelMode === 'column' && (
+        <ColumnEditPanel
+          table={selectedTable}
+          onClose={() => {
+            setSelectedTable(null);
+            setPanelMode(null);
+          }}
+          onUpdateColumn={onUpdateColumn}
+        />
+      )}
+
+      {/* テーブルスタイル編集パネル（シングルクリック時） */}
+      {panelMode === 'style' && (
+        <TableStylePanel
+          table={selectedTable}
+          onClose={() => {
+            setSelectedTable(null);
+            setPanelMode(null);
+          }}
+          onUpdateTableStyle={onUpdateTableStyle}
+        />
+      )}
     </div>
   );
 };

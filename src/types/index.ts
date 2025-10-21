@@ -16,6 +16,14 @@ export interface Column {
 export interface Table {
   name: string;
   columns: Column[];
+  // テーブル個別のスタイル設定（オプション）
+  customStyle?: {
+    headerBg?: string;
+    headerText?: string;
+    bodyBg?: string;
+    bodyText?: string;
+    borderColor?: string;
+  };
 }
 
 export interface Relationship {

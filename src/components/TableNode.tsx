@@ -13,13 +13,20 @@ interface TableNodeProps {
 const TableNode: React.FC<TableNodeProps> = ({ data }) => {
   const { table, style } = data;
 
+  // テーブル個別の色設定がある場合はそれを優先、なければデフォルトのスタイルを使用
+  const headerBg = table.customStyle?.headerBg || style.tableHeaderBg;
+  const headerText = table.customStyle?.headerText || style.tableHeaderText;
+  const bodyBg = table.customStyle?.bodyBg || style.tableBodyBg;
+  const bodyText = table.customStyle?.bodyText || style.tableBodyText;
+  const borderColor = table.customStyle?.borderColor || style.tableBorderColor;
+
   return (
     <div
       className="shadow-lg"
       style={{
-        backgroundColor: style.tableBodyBg,
+        backgroundColor: bodyBg,
         borderRadius: `${style.borderRadius}px`,
-        border: `${style.borderWidth}px solid ${style.tableBorderColor}`,
+        border: `${style.borderWidth}px solid ${borderColor}`,
         minWidth: '250px',
         fontFamily: style.fontFamily,
         fontSize: `${style.fontSize}px`,
@@ -29,8 +36,8 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
       <div
         className="px-4 py-2 font-bold text-center"
         style={{
-          backgroundColor: style.tableHeaderBg,
-          color: style.tableHeaderText,
+          backgroundColor: headerBg,
+          color: headerText,
           borderTopLeftRadius: `${style.borderRadius - style.borderWidth}px`,
           borderTopRightRadius: `${style.borderRadius - style.borderWidth}px`,
         }}
@@ -45,8 +52,8 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
             key={index}
             className="px-4 py-2 flex items-center justify-between relative"
             style={{
-              color: style.tableBodyText,
-              backgroundColor: style.tableBodyBg,
+              color: bodyText,
+              backgroundColor: bodyBg,
             }}
           >
             {/* 各カラムの左側ハンドル（source & target の両方） */}

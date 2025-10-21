@@ -62,6 +62,24 @@ function App() {
     []
   );
 
+  // テーブルスタイル更新処理
+  const handleUpdateTableStyle = useCallback(
+    (tableName: string, customStyle: Table['customStyle']) => {
+      setTables((prevTables) =>
+        prevTables.map((table) => {
+          if (table.name === tableName) {
+            return {
+              ...table,
+              customStyle,
+            };
+          }
+          return table;
+        })
+      );
+    },
+    []
+  );
+
   return (
     <div className="flex flex-col h-screen">
       {/* ヘッダー */}
@@ -93,6 +111,7 @@ function App() {
                 relationships={relationships}
                 style={style}
                 onUpdateColumn={handleUpdateColumn}
+                onUpdateTableStyle={handleUpdateTableStyle}
               />
             </div>
           )}
