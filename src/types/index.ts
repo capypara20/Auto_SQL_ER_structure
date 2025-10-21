@@ -13,9 +13,18 @@ export interface Column {
   description?: string;  // カラムの説明
 }
 
+export interface TableCustomStyle {
+  headerBg?: string;
+  headerText?: string;
+  bodyBg?: string;
+  bodyText?: string;
+  borderColor?: string;
+}
+
 export interface Table {
   name: string;
   columns: Column[];
+  customStyle?: TableCustomStyle; // テーブル個別の色設定（オプショナル）
 }
 
 export interface Relationship {

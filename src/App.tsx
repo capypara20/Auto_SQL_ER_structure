@@ -62,6 +62,24 @@ function App() {
     []
   );
 
+  // テーブル更新処理
+  const handleUpdateTable = useCallback(
+    (tableName: string, updates: Partial<Table>) => {
+      setTables((prevTables) =>
+        prevTables.map((table) => {
+          if (table.name === tableName) {
+            return {
+              ...table,
+              ...updates,
+            };
+          }
+          return table;
+        })
+      );
+    },
+    []
+  );
+
   return (
     <div className="flex flex-col h-screen">
       {/* ヘッダー */}
@@ -93,6 +111,7 @@ function App() {
                 relationships={relationships}
                 style={style}
                 onUpdateColumn={handleUpdateColumn}
+                onUpdateTable={handleUpdateTable}
               />
             </div>
           )}

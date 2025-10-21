@@ -17,6 +17,7 @@ import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
 import EdgeEditPanel from './EdgeEditPanel';
 import ColumnEditPanel from './ColumnEditPanel';
+import TableColorPanel from './TableColorPanel';
 import { Table, Relationship, DiagramStyle, Column } from '../types';
 
 interface ERDiagramProps {
@@ -24,13 +25,14 @@ interface ERDiagramProps {
   relationships: Relationship[];
   style: DiagramStyle;
   onUpdateColumn: (tableName: string, columnName: string, updates: Partial<Column>) => void;
+  onUpdateTable: (tableName: string, updates: Partial<Table>) => void;
 }
 
 const nodeTypes = {
   tableNode: TableNode,
 };
 
-const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn }) => {
+const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn, onUpdateTable }) => {
   // テーブルをノードに変換
   const initialNodes: Node[] = useMemo(() => {
     return tables.map((table, index) => ({
@@ -76,6 +78,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedTableForColor, setSelectedTableForColor] = useState<Table | null>(null);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -111,12 +114,23 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
     setSelectedTable(null); // エッジ選択時はテーブル選択を解除
   }, []);
 
-  // ノード（テーブル）をクリックしたときの処理
+  // ノード（テーブル）をクリックしたときの処理（カラム編集）
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const table = tables.find((t) => t.name === node.id);
     if (table) {
       setSelectedTable(table);
       setSelectedEdge(null); // テーブル選択時はエッジ選択を解除
+      setSelectedTableForColor(null); // 色編集パネルも閉じる
+    }
+  }, [tables]);
+
+  // ノード（テーブル）をダブルクリックしたときの処理（色編集）
+  const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    const table = tables.find((t) => t.name === node.id);
+    if (table) {
+      setSelectedTableForColor(table);
+      setSelectedTable(null); // カラム編集パネルは閉じる
+      setSelectedEdge(null); // エッジ選択も解除
     }
   }, [tables]);
 
@@ -276,6 +290,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
@@ -309,6 +324,13 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         table={selectedTable}
         onClose={() => setSelectedTable(null)}
         onUpdateColumn={onUpdateColumn}
+      />
+
+      {/* テーブル色編集パネル */}
+      <TableColorPanel
+        table={selectedTableForColor}
+        onClose={() => setSelectedTableForColor(null)}
+        onUpdateTable={onUpdateTable}
       />
     </div>
   );

@@ -25,6 +25,8 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
   const strokeDasharray = (selectedEdge.style as any)?.strokeDasharray || '0';
   const edgeType = selectedEdge.type || 'default';
   const isAnimated = selectedEdge.animated || false;
+  const labelX = (selectedEdge as any).labelX ?? 0.5; // デフォルトは中央
+  const labelY = (selectedEdge as any).labelY ?? 0.5;
 
   return (
     <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-80 z-10">
@@ -53,6 +55,56 @@ const EdgeEditPanel: React.FC<EdgeEditPanelProps> = ({
             placeholder="接続のラベル"
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           />
+        </div>
+
+        {/* ラベル位置調整（X軸） */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            ラベル位置（線に沿った位置）: {Math.round(labelX * 100)}%
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={labelX}
+            onChange={(e) => {
+              onUpdateEdge(selectedEdge.id, {
+                labelX: Number(e.target.value),
+              } as any);
+            }}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>始点</span>
+            <span>中央</span>
+            <span>終点</span>
+          </div>
+        </div>
+
+        {/* ラベル位置調整（Y軸） */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            ラベルオフセット（線からの距離）: {Math.round((labelY - 0.5) * 100)}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={labelY}
+            onChange={(e) => {
+              onUpdateEdge(selectedEdge.id, {
+                labelY: Number(e.target.value),
+              } as any);
+            }}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>上</span>
+            <span>線上</span>
+            <span>下</span>
+          </div>
         </div>
 
         {/* 色の変更 */}
