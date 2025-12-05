@@ -232,7 +232,9 @@ const StylePanel: React.FC<StylePanelProps> = ({ style, onChange }) => {
             <option value="smoothstep">スムーズステップ（滑らか）</option>
             <option value="straight">直線</option>
             <option value="step">ステップ（階段状）</option>
-            <option value="simplebezier">ベジェ曲線</option>
+            <option value="simplebezier">シンプルベジェ曲線</option>
+            <option value="bezier">ベジェ曲線</option>
+            <option value="custom">カスタム</option>
             <option value="default">デフォルト</option>
           </select>
         </div>
@@ -297,6 +299,18 @@ const StylePanel: React.FC<StylePanelProps> = ({ style, onChange }) => {
             <option value="ui-sans-serif, sans-serif">Sans-serif</option>
             <option value="ui-serif, serif">Serif</option>
             <option value="'Courier New', monospace">Courier New</option>
+            <option value="'Arial', sans-serif">Arial</option>
+            <option value="'Helvetica', sans-serif">Helvetica</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Georgia', serif">Georgia</option>
+            <option value="'Verdana', sans-serif">Verdana</option>
+            <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+            <option value="'Impact', sans-serif">Impact</option>
+            <option value="'Consolas', monospace">Consolas</option>
+            <option value="'Monaco', monospace">Monaco</option>
+            <option value="'Lucida Console', monospace">Lucida Console</option>
+            <option value="system-ui, sans-serif">System UI</option>
           </select>
         </div>
       </div>

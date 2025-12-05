@@ -35,7 +35,7 @@ export interface Relationship {
   type: 'one-to-one' | 'one-to-many' | 'many-to-many';
 }
 
-export type EdgeType = 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier';
+export type EdgeType = 'default' | 'straight' | 'step' | 'smoothstep' | 'simplebezier' | 'bezier' | 'custom';
 
 export interface DiagramStyle {
   backgroundColor: string;
