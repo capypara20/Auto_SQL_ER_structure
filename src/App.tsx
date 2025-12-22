@@ -33,10 +33,35 @@ function App() {
 
   // ファイルアップロード処理
   const handleFileUpload = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    (event: React.ChangeEvent<HTMLInputElement>, mode: 'new' | 'append') => {
       uploadFile(event, (parsedTables, parsedRelationships) => {
-        setTables(parsedTables);
-        setRelationships(parsedRelationships);
+        if (mode === 'new') {
+          // 新規モード: 既存のテーブルを置き換え
+          setTables(parsedTables);
+          setRelationships(parsedRelationships);
+        } else {
+          // 追加モード: 既存のテーブルに追加（重複チェック）
+          setTables((prevTables) => {
+            const existingTableNames = new Set(prevTables.map((t) => t.name));
+            const newTables = parsedTables.filter((t) => !existingTableNames.has(t.name));
+            return [...prevTables, ...newTables];
+          });
+          setRelationships((prevRelationships) => {
+            // リレーションシップの重複チェック
+            const existingRelKeys = new Set(
+              prevRelationships.map(
+                (r) => `${r.sourceTable}-${r.sourceColumn}-${r.targetTable}-${r.targetColumn}`
+              )
+            );
+            const newRelationships = parsedRelationships.filter(
+              (r) =>
+                !existingRelKeys.has(
+                  `${r.sourceTable}-${r.sourceColumn}-${r.targetTable}-${r.targetColumn}`
+                )
+            );
+            return [...prevRelationships, ...newRelationships];
+          });
+        }
       });
     },
     [uploadFile]

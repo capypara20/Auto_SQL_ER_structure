@@ -1,11 +1,11 @@
 import React from 'react';
-import { Upload, Download, Eye, EyeOff, FileText, FileCode, Table } from 'lucide-react';
+import { Upload, Download, Eye, EyeOff, FileText, FileCode, Table, FilePlus } from 'lucide-react';
 
 interface HeaderProps {
   showStylePanel: boolean;
   hasTables: boolean;
   onToggleStylePanel: () => void;
-  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>, mode: 'new' | 'append') => void;
   onExportPNG: () => void;
   onExportSVG: () => void;
   onExportPDF: () => void;
@@ -37,14 +37,27 @@ const Header: React.FC<HeaderProps> = ({
           <h1 className="text-2xl font-bold">SQL ER図ジェネレーター</h1>
 
           <div className="flex gap-3">
-            {/* ファイルアップロード */}
+            {/* ファイルアップロード - 新規 */}
             <label className="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center gap-2">
               <Upload size={18} />
-              <span>SQLファイルを開く</span>
+              <span>新規で開く</span>
               <input
                 type="file"
                 accept=".sql"
-                onChange={onFileUpload}
+                onChange={(e) => onFileUpload(e, 'new')}
+                className="hidden"
+                multiple
+              />
+            </label>
+
+            {/* ファイルアップロード - 追加 */}
+            <label className="cursor-pointer bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-200 transition-colors flex items-center gap-2">
+              <FilePlus size={18} />
+              <span>追加で開く</span>
+              <input
+                type="file"
+                accept=".sql"
+                onChange={(e) => onFileUpload(e, 'append')}
                 className="hidden"
                 multiple
               />
