@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import ERDiagram from './components/ERDiagram';
-import StylePanel from './components/StylePanel';
+import TableSQLSidebar from './components/TableSQLSidebar';
+import RightSidebar from './components/RightSidebar';
 import Header from './components/Header';
 import EmptyState from './components/EmptyState';
 import { useFileUpload } from './hooks/useFileUpload';
@@ -13,6 +14,8 @@ function App() {
   const [relationships, setRelationships] = useState<Relationship[]>([]);
   const [style, setStyle] = useState<DiagramStyle>(defaultStyle);
   const [showStylePanel, setShowStylePanel] = useState(true);
+  const [selectedTableForSQL, setSelectedTableForSQL] = useState<Table | null>(null);
+  const [selectedTableForStyle, setSelectedTableForStyle] = useState<Table | null>(null);
 
   // カスタムフック
   const { handleFileUpload: uploadFile } = useFileUpload();
@@ -50,13 +53,13 @@ function App() {
             // リレーションシップの重複チェック
             const existingRelKeys = new Set(
               prevRelationships.map(
-                (r) => `${r.sourceTable}-${r.sourceColumn}-${r.targetTable}-${r.targetColumn}`
+                (r) => `${r.source}-${r.sourceColumn}-${r.target}-${r.targetColumn}`
               )
             );
             const newRelationships = parsedRelationships.filter(
               (r) =>
                 !existingRelKeys.has(
-                  `${r.sourceTable}-${r.sourceColumn}-${r.targetTable}-${r.targetColumn}`
+                  `${r.source}-${r.sourceColumn}-${r.target}-${r.targetColumn}`
                 )
             );
             return [...prevRelationships, ...newRelationships];
@@ -125,6 +128,15 @@ function App() {
 
       {/* メインコンテンツ */}
       <div className="flex flex-1 overflow-hidden">
+        {/* 左サイドバー - SQL定義・カラム編集パネル */}
+        {selectedTableForSQL && (
+          <TableSQLSidebar
+            table={selectedTableForSQL}
+            onClose={() => setSelectedTableForSQL(null)}
+            onUpdateColumn={handleUpdateColumn}
+          />
+        )}
+
         {/* ER図表示エリア */}
         <div className="flex-1 relative">
           {tables.length === 0 ? (
@@ -137,13 +149,23 @@ function App() {
                 style={style}
                 onUpdateColumn={handleUpdateColumn}
                 onUpdateTableStyle={handleUpdateTableStyle}
+                onTableDoubleClick={setSelectedTableForSQL}
+                onTableClick={setSelectedTableForStyle}
               />
             </div>
           )}
         </div>
 
-        {/* スタイルパネル */}
-        {showStylePanel && <StylePanel style={style} onChange={setStyle} />}
+        {/* 右サイドバー - 統合パネル */}
+        <RightSidebar
+          selectedTable={selectedTableForStyle}
+          onCloseTable={() => setSelectedTableForStyle(null)}
+          onUpdateTableStyle={handleUpdateTableStyle}
+          defaultStyle={style}
+          showGlobalStyle={showStylePanel}
+          globalStyle={style}
+          onChangeGlobalStyle={setStyle}
+        />
       </div>
     </div>
   );

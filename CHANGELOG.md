@@ -13,6 +13,55 @@
 
 ---
 
+## [2025-12-24] - UI/UX改善: サイドバー統合とナビゲーション改善
+
+### 追加
+- **左サイドバー（TableSQLSidebar）**: テーブルダブルクリックでSQL定義とカラム編集を表示
+  - SQL CREATE文の自動生成と表示
+  - カラム編集機能の統合
+  - コピー機能付き
+- **右サイドバー（RightSidebar）**: 2つのパネルを統合
+  - テーブル個別スタイル編集パネル（テーブルクリック時）
+  - グローバルスタイル編集パネル（常時表示可能）
+  - タブ切り替えで効率的なナビゲーション
+
+### 変更
+- **テーブル操作の整理**:
+  - シングルクリック → 右サイドバーでテーブル個別スタイル編集
+  - ダブルクリック → 左サイドバーでSQL定義・カラム編集
+- **モーダルからサイドバーへ移行**:
+  - `TableSQLModal.tsx` を削除
+  - `ColumnEditPanel.tsx` の機能を `TableSQLSidebar` に統合
+  - `TableStylePanel.tsx` の機能を `RightSidebar` に統合
+- **StylePanelの最適化**:
+  - コンパクトなデザイン（幅380px → 96、padding/margin削減）
+  - フォントサイズを小型化（text-sm → text-xs）
+  - 入力要素のサイズを縮小
+- **ERDiagramコンポーネントの簡素化**:
+  - パネル表示ロジックを親コンポーネント（App.tsx）に移動
+  - `onTableClick` / `onTableDoubleClick` コールバックを追加
+  - コンポーネントの責務を明確化
+
+### 削除
+- `TableSQLModal.tsx`: サイドバー方式に変更
+- `ColumnEditPanel.tsx`: TableSQLSidebarに統合
+- `TableStylePanel.tsx`: RightSidebarに統合
+- TableNodeの「SQL定義」ボタン: ダブルクリック操作に変更
+
+### 修正
+- **リレーションシップの重複チェック修正**:
+  - `sourceTable`/`targetTable` → `source`/`target` プロパティ名を修正
+  - Relationship型定義に合わせて正しく動作するように修正
+- **sqlParser.ts**: プロパティ名を統一（source/target）
+
+### UI/UX改善
+- より直感的な操作: クリックで色編集、ダブルクリックで構造編集
+- モーダルによる視界遮断を削減
+- 左右サイドバーでワークスペースを最大化
+- コンパクトで情報密度の高いパネルデザイン
+
+---
+
 ## [2025-10-19] - 線の形式変更、ミニマップ追加、モジュール化
 
 ### 追加

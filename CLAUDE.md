@@ -40,8 +40,10 @@ npm run preview
 
 3. **State Management** (`src/App.tsx`):
    - Main app state: `tables`, `relationships`, `style` (DiagramStyle)
+   - UI state: `selectedTableForSQL`, `selectedTableForStyle`, `showStylePanel`
    - File upload handling with support for multiple .sql files
    - Export functionality orchestration
+   - Sidebar visibility management
 
 ### Key Components
 
@@ -50,11 +52,36 @@ npm run preview
   - Renders table header and column list
   - Shows primary key (gold key icon) and foreign key (purple key icon) indicators
   - Styled with Tailwind CSS and dynamic inline styles from DiagramStyle
+  - Click events propagate to parent for sidebar control
+
+- **TableSQLSidebar** (`src/components/TableSQLSidebar.tsx`):
+  - Left sidebar displayed on table double-click
+  - Generates and displays SQL CREATE statement for the selected table
+  - Integrated column editing functionality (type, nullable, key flags)
+  - Copy-to-clipboard feature for SQL code
+  - Detailed column information table with visual key indicators
+
+- **RightSidebar** (`src/components/RightSidebar.tsx`):
+  - Unified right sidebar with tab-based navigation
+  - Two tabs:
+    - **Table Style**: Individual table color customization (appears when table is clicked)
+    - **Global Style**: Diagram-wide styling controls (always available)
+  - Automatically switches to Table Style tab when a table is selected
+  - Compact design to maximize diagram workspace
 
 - **StylePanel** (`src/components/StylePanel.tsx`):
-  - Right sidebar for customizing diagram appearance
-  - Controls: colors, fonts, border styles, edge types, animation
+  - Compact component for global diagram styling (now embedded in RightSidebar)
+  - Controls: background color, table colors, key colors, relationship line styles
+  - Font settings: size, family, weight
+  - Shape settings: border radius, border width
+  - Edge settings: type, width, animation, dash patterns
   - Updates trigger re-render of all nodes/edges with new styles
+
+- **TableStylePanel** (now part of `src/components/RightSidebar.tsx`):
+  - Individual table color customization
+  - Override default colors for specific tables
+  - Header and body background/text colors
+  - Reset to default button
 
 ### Type System
 
@@ -103,6 +130,23 @@ Sample SQL files in `public/examples/`:
 - html-to-image (diagram export)
 - jsPDF (PDF export)
 
+## User Interaction Patterns
+
+### Table Click Behavior
+- **Single Click**: Opens right sidebar's "Table Style" tab for individual table color customization
+- **Double Click**: Opens left sidebar (TableSQLSidebar) showing SQL definition and column editing
+
+### Sidebar Management
+- **Left Sidebar (TableSQLSidebar)**: Triggered by double-clicking a table
+  - Displays generated SQL CREATE statement
+  - Allows column editing (name, type, nullable, keys)
+  - Includes copy-to-clipboard functionality
+
+- **Right Sidebar (RightSidebar)**: Always present but tab-based
+  - "Table Style" tab: Active when a table is selected (single click)
+  - "Global Style" tab: Always available for diagram-wide styling
+  - Tabs automatically switch based on user interaction
+
 ## Common Gotchas
 
 1. **ReactFlow State Management**: When updating styles, nodes must be updated with new `data.style` object to trigger re-renders. See `ERDiagram.tsx` useEffect that watches `style` changes.
@@ -112,3 +156,16 @@ Sample SQL files in `public/examples/`:
 3. **Export Quality**: PNG/SVG exports use `pixelRatio` to control resolution. Higher values = better quality but slower generation.
 
 4. **File Upload Reset**: The file input is reset after upload (`event.target.value = ''`) to allow re-uploading the same file.
+
+5. **Relationship Property Names**: Use `source`/`target` (NOT `sourceTable`/`targetTable`) to match the Relationship type definition. The duplicate check in App.tsx relies on these exact property names.
+
+6. **Sidebar State Separation**: Keep `selectedTableForSQL` and `selectedTableForStyle` as separate states - they control different sidebars and different user interactions (click vs double-click).
+
+## Recent Updates (2025-12-24)
+
+### UI/UX Refactoring
+- Migrated from modal-based to sidebar-based UI for better workspace visibility
+- Consolidated multiple panels into unified left/right sidebar architecture
+- Separated concerns: structure editing (left) vs. styling (right)
+- Improved navigation with clear click/double-click patterns
+- Made StylePanel more compact to reduce screen real estate usage

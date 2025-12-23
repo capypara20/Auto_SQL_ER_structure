@@ -1,8 +1,7 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Table, DiagramStyle } from '../types';
-import { Key, KeyRound, FileCode } from 'lucide-react';
-import TableSQLModal from './TableSQLModal';
+import { Key, KeyRound } from 'lucide-react';
 
 interface TableNodeProps {
   data: {
@@ -13,7 +12,6 @@ interface TableNodeProps {
 
 const TableNode: React.FC<TableNodeProps> = ({ data }) => {
   const { table, style } = data;
-  const [showSQLModal, setShowSQLModal] = useState(false);
 
   // テーブル個別の色設定がある場合はそれを優先、なければデフォルトのスタイルを使用
   const headerBg = table.customStyle?.headerBg || style.tableHeaderBg;
@@ -37,7 +35,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
       >
         {/* テーブルヘッダー */}
         <div
-          className="px-5 py-3 font-bold text-center flex items-center justify-between"
+          className="px-5 py-3 font-bold text-center"
           style={{
             backgroundColor: headerBg,
             color: headerText,
@@ -45,14 +43,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
             borderTopRightRadius: `${style.borderRadius - style.borderWidth}px`,
           }}
         >
-          <span className="flex-1">{table.name}</span>
-          <button
-            onClick={() => setShowSQLModal(true)}
-            className="ml-2 p-1.5 hover:bg-white hover:bg-opacity-20 rounded transition-colors"
-            title="SQL定義を表示"
-          >
-            <FileCode size={20} />
-          </button>
+          {table.name}
         </div>
 
         {/* カラム一覧 */}
@@ -152,11 +143,6 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
           style={{ background: style.relationshipColor }}
         />
       </div>
-
-      {/* SQLモーダル */}
-      {showSQLModal && (
-        <TableSQLModal table={table} onClose={() => setShowSQLModal(false)} />
-      )}
     </>
   );
 };

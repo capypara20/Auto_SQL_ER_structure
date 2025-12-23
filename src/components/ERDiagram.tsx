@@ -16,8 +16,6 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import TableNode from './TableNode';
 import EdgeEditPanel from './EdgeEditPanel';
-import ColumnEditPanel from './ColumnEditPanel';
-import TableStylePanel from './TableStylePanel';
 import DraggableEdge from './DraggableEdge';
 import { Table, Relationship, DiagramStyle, Column } from '../types';
 
@@ -25,8 +23,10 @@ interface ERDiagramProps {
   tables: Table[];
   relationships: Relationship[];
   style: DiagramStyle;
-  onUpdateColumn: (tableName: string, columnName: string, updates: Partial<Column>) => void;
-  onUpdateTableStyle: (tableName: string, customStyle: Table['customStyle']) => void;
+  onUpdateColumn?: (tableName: string, columnName: string, updates: Partial<Column>) => void;
+  onUpdateTableStyle?: (tableName: string, customStyle: Table['customStyle']) => void;
+  onTableClick?: (table: Table) => void;
+  onTableDoubleClick?: (table: Table) => void;
 }
 
 const nodeTypes = {
@@ -37,7 +37,7 @@ const edgeTypes = {
   draggable: DraggableEdge,
 };
 
-const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onUpdateColumn, onUpdateTableStyle }) => {
+const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onTableClick, onTableDoubleClick }) => {
   // テーブルをノードに変換
   const initialNodes: Node[] = useMemo(() => {
     return tables.map((table, index) => ({
@@ -77,8 +77,6 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [panelMode, setPanelMode] = useState<'column' | 'style' | null>(null);
 
   // エッジラベルのドラッグイベントを処理
   React.useEffect(() => {
@@ -135,28 +133,25 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
   // エッジをクリックしたときの処理
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     setSelectedEdge(edge);
-    setSelectedTable(null); // エッジ選択時はテーブル選択を解除
   }, []);
 
-  // ノード（テーブル）をダブルクリックしたときの処理（カラム編集）
+  // ノード（テーブル）をダブルクリックしたときの処理（カラム編集 - 左サイドバー）
   const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const table = tables.find((t) => t.name === node.id);
-    if (table) {
-      setSelectedTable(table);
+    if (table && onTableDoubleClick) {
+      onTableDoubleClick(table);
       setSelectedEdge(null);
-      setPanelMode('column');
     }
-  }, [tables]);
+  }, [tables, onTableDoubleClick]);
 
-  // ノード（テーブル）をクリックしたときの処理（スタイル編集）
+  // ノード（テーブル）をクリックしたときの処理（スタイル編集 - 右サイドバー）
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     const table = tables.find((t) => t.name === node.id);
-    if (table) {
-      setSelectedTable(table);
+    if (table && onTableClick) {
+      onTableClick(table);
       setSelectedEdge(null);
-      setPanelMode('style');
     }
-  }, [tables]);
+  }, [tables, onTableClick]);
 
   // エッジの再接続（付け替え）処理
   const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
@@ -345,30 +340,6 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onU
         onReverseEdge={handleReverseEdge}
         onClose={() => setSelectedEdge(null)}
       />
-
-      {/* カラム編集パネル（ダブルクリック時） */}
-      {panelMode === 'column' && (
-        <ColumnEditPanel
-          table={selectedTable}
-          onClose={() => {
-            setSelectedTable(null);
-            setPanelMode(null);
-          }}
-          onUpdateColumn={onUpdateColumn}
-        />
-      )}
-
-      {/* テーブルスタイル編集パネル（シングルクリック時） */}
-      {panelMode === 'style' && (
-        <TableStylePanel
-          table={selectedTable}
-          onClose={() => {
-            setSelectedTable(null);
-            setPanelMode(null);
-          }}
-          onUpdateTableStyle={onUpdateTableStyle}
-        />
-      )}
     </div>
   );
 };

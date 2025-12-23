@@ -10,6 +10,60 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
     .replace(/\n+/g, '\n')
     .trim();
 
+  // ALTER TABLE制約を一時保存
+  const alterTableConstraints: {
+    tableName: string;
+    type: 'PRIMARY_KEY' | 'FOREIGN_KEY' | 'UNIQUE';
+    columns?: string[];
+    refTable?: string;
+    refColumns?: string[];
+  }[] = [];
+
+  // ALTER TABLE文を個別に抽出して処理
+  // IF EXISTSにも対応
+  const alterTableStatements = normalizedSQL.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:`?\w+`?\.)?`?\w+`?[\s\S]*?;/gi) || [];
+
+  alterTableStatements.forEach(statement => {
+    // テーブル名を抽出
+    const tableNameMatch = statement.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:`?(\w+)`?\.)?`?(\w+)`?/i);
+    if (!tableNameMatch) return;
+
+    const tableName = tableNameMatch[2];
+
+    // 各ADD句を個別に処理（カンマ区切りの複数ADD対応）
+    // ADD CONSTRAINT または ADD PRIMARY KEY/FOREIGN KEY/UNIQUE を検索
+    const addClauses = statement.matchAll(/ADD\s+(?:CONSTRAINT\s+\w+\s+)?(PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE)\s*\(([^)]+)\)(?:\s+REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(([^)]+)\))?(?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|SET\s+NULL|NO\s+ACTION|RESTRICT))*/gi);
+
+    for (const addMatch of addClauses) {
+      const constraintType = addMatch[1].toUpperCase().replace(/\s+/g, '_');
+      const columns = addMatch[2].split(',').map(col => col.trim().replace(/`/g, ''));
+      const refTable = addMatch[3];
+      const refColumns = addMatch[4]?.split(',').map(col => col.trim().replace(/`/g, ''));
+
+      if (constraintType === 'PRIMARY_KEY') {
+        alterTableConstraints.push({
+          tableName,
+          type: 'PRIMARY_KEY',
+          columns,
+        });
+      } else if (constraintType === 'FOREIGN_KEY' && refTable) {
+        alterTableConstraints.push({
+          tableName,
+          type: 'FOREIGN_KEY',
+          columns,
+          refTable,
+          refColumns,
+        });
+      } else if (constraintType === 'UNIQUE') {
+        alterTableConstraints.push({
+          tableName,
+          type: 'UNIQUE',
+          columns,
+        });
+      }
+    }
+  });
+
   // CREATE TABLEステートメントを抽出（スキーマ名対応）
   const createTableRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`?(\w+)`?\.)?`?(\w+)`?\s*\(([\s\S]*?)\);/gi;
   let match;
@@ -187,6 +241,46 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
       columns,
     });
   }
+
+  // ALTER TABLE制約を適用
+  alterTableConstraints.forEach(constraint => {
+    const table = tables.find(t => t.name === constraint.tableName);
+    if (!table) return;
+
+    if (constraint.type === 'PRIMARY_KEY' && constraint.columns) {
+      // 主キー制約を適用
+      constraint.columns.forEach(colName => {
+        const column = table.columns.find(c => c.name === colName);
+        if (column) {
+          column.isPrimaryKey = true;
+        }
+      });
+    } else if (constraint.type === 'FOREIGN_KEY' && constraint.columns && constraint.refTable && constraint.refColumns) {
+      // 外部キー制約を適用
+      constraint.columns.forEach((colName, index) => {
+        const column = table.columns.find(c => c.name === colName);
+        const refColumn = constraint.refColumns![index] || constraint.refColumns![0];
+
+        if (column) {
+          column.isForeignKey = true;
+          column.foreignKeyRef = {
+            table: constraint.refTable!,
+            column: refColumn,
+          };
+
+          // リレーションシップを追加
+          relationships.push({
+            id: `${table.name}_${colName}_${constraint.refTable}_${refColumn}`,
+            source: table.name,
+            target: constraint.refTable!,
+            sourceColumn: colName,
+            targetColumn: refColumn,
+            type: 'one-to-many',
+          });
+        }
+      });
+    }
+  });
 
   return { tables, relationships };
 }
