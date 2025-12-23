@@ -64,7 +64,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
       style: {
         stroke: '#999',
         strokeWidth: 2,
-        strokeDasharray: '0', // デフォルトは実線（エクスポート時の互換性のため明示的に設定）
+        strokeDasharray: '2 2', // デフォルトは点線
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -74,6 +74,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
       data: {
         labelOffsetX: 0,
         labelOffsetY: 0,
+        edgeType: 'simplebezier', // デフォルトのエッジタイプ
       },
     }));
   }, [relationships]);
@@ -121,7 +122,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         style: {
           stroke: style.relationshipColor,
           strokeWidth: style.relationshipWidth,
-          strokeDasharray: '0', // デフォルトは実線
+          strokeDasharray: '2 2', // デフォルトは点線
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -131,6 +132,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         data: {
           labelOffsetX: 0,
           labelOffsetY: 0,
+          edgeType: style.edgeType, // エッジタイプを追加
         },
       };
       setEdges((eds) => addEdge(newEdge as any, eds));
@@ -312,7 +314,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
     setEdges((eds) =>
       eds.map((edge) => ({
         ...edge,
-        type: style.edgeType,
+        type: 'draggable', // typeは常にdraggable（実際のエッジタイプはdataに格納）
         animated: style.edgeAnimated,
         style: {
           ...edge.style, // 既存のスタイル（strokeDasharrayなど）を保持
@@ -322,6 +324,10 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: style.relationshipColor,
+        },
+        data: {
+          ...edge.data,
+          edgeType: style.edgeType, // エッジタイプをdataに格納
         },
         labelStyle: {
           fill: style.tableBodyText,
