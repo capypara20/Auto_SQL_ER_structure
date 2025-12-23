@@ -233,8 +233,6 @@ const StylePanel: React.FC<StylePanelProps> = ({ style, onChange }) => {
             <option value="straight">直線</option>
             <option value="step">ステップ（階段状）</option>
             <option value="simplebezier">シンプルベジェ曲線</option>
-            <option value="bezier">ベジェ曲線</option>
-            <option value="custom">カスタム</option>
             <option value="default">デフォルト</option>
           </select>
         </div>

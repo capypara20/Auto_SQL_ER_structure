@@ -38,7 +38,7 @@ const edgeTypes = {
 };
 
 const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onTableClick, onTableDoubleClick }) => {
-  // テーブルをノードに変換
+  // テーブルをノードに変換 (スタイルは後で適用するので依存配列から除外)
   const initialNodes: Node[] = useMemo(() => {
     return tables.map((table, index) => ({
       id: table.name,
@@ -47,11 +47,11 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         x: (index % 3) * 350 + 50,
         y: Math.floor(index / 3) * 300 + 50,
       },
-      data: { table, style },
+      data: { table, style: {} as DiagramStyle }, // 空のスタイル、後で更新される
     }));
-  }, [tables, style]);
+  }, [tables]);
 
-  // リレーションシップをエッジに変換
+  // リレーションシップをエッジに変換 (スタイルは後で適用するので依存配列から除外)
   const initialEdges: Edge[] = useMemo(() => {
     return relationships.map((rel) => ({
       id: rel.id,
@@ -60,11 +60,15 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
       sourceHandle: `${rel.source}-${rel.sourceColumn}-right`,
       targetHandle: `${rel.target}-${rel.targetColumn}-left`,
       type: 'draggable',
-      animated: style.edgeAnimated,
-      style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
+      animated: false, // 初期値、後でスタイルから設定
+      style: {
+        stroke: '#999',
+        strokeWidth: 2,
+        strokeDasharray: '0', // デフォルトは実線（エクスポート時の互換性のため明示的に設定）
+      },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: style.relationshipColor,
+        color: '#999',
       },
       label: `${rel.sourceColumn} → ${rel.targetColumn}`,
       data: {
@@ -72,7 +76,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         labelOffsetY: 0,
       },
     }));
-  }, [relationships, style]);
+  }, [relationships]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -114,7 +118,11 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         id: `edge-${params.source}-${params.sourceHandle}-${params.target}-${params.targetHandle}-${Date.now()}`,
         type: 'draggable',
         animated: style.edgeAnimated,
-        style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
+        style: {
+          stroke: style.relationshipColor,
+          strokeWidth: style.relationshipWidth,
+          strokeDasharray: '0', // デフォルトは実線
+        },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: style.relationshipColor,
@@ -238,10 +246,10 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         const existingNode = existingNodesMap.get(table.name);
 
         if (existingNode) {
-          // 既存ノードがある場合は位置を保持してデータのみ更新
+          // 既存ノードがある場合は位置を保持してtableデータのみ更新（スタイルは保持）
           return {
             ...existingNode,
-            data: { table, style },
+            data: { ...existingNode.data, table },
           };
         } else {
           // 新しいノードの場合は初期位置を設定
@@ -263,10 +271,36 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
 
   // relationshipsが変更されたらエッジを完全に再構築
   React.useEffect(() => {
-    setEdges(initialEdges);
+    setEdges((currentEdges) => {
+      // 既存のエッジIDのマップを作成（ユーザーのカスタマイズを保持するため）
+      const existingEdgesMap = new Map(currentEdges.map(edge => [edge.id, edge]));
+
+      // 新しいリレーションシップに基づいてエッジを更新
+      return initialEdges.map((newEdge) => {
+        const existingEdge = existingEdgesMap.get(newEdge.id);
+
+        if (existingEdge) {
+          // 既存エッジがある場合は、ユーザーカスタマイズを保持
+          return {
+            ...existingEdge,
+            // 接続情報のみ更新
+            source: newEdge.source,
+            target: newEdge.target,
+            sourceHandle: newEdge.sourceHandle,
+            targetHandle: newEdge.targetHandle,
+            label: existingEdge.label, // ラベルは保持
+            data: existingEdge.data, // カスタムデータ（ラベル位置など）を保持
+            style: existingEdge.style, // スタイル（strokeDasharrayなど）を保持
+          };
+        } else {
+          // 新しいエッジの場合はそのまま使用
+          return newEdge;
+        }
+      });
+    });
   }, [initialEdges, setEdges]);
 
-  // スタイルが変更されたらノードデータとエッジを更新
+  // スタイルが変更されたらノードデータとエッジを更新（ユーザーカスタマイズは保持）
   React.useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => ({
@@ -280,7 +314,11 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ tables, relationships, style, onT
         ...edge,
         type: style.edgeType,
         animated: style.edgeAnimated,
-        style: { stroke: style.relationshipColor, strokeWidth: style.relationshipWidth },
+        style: {
+          ...edge.style, // 既存のスタイル（strokeDasharrayなど）を保持
+          stroke: style.relationshipColor,
+          strokeWidth: style.relationshipWidth,
+        },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: style.relationshipColor,

@@ -71,6 +71,11 @@ const DraggableEdge: React.FC<EdgeProps> = ({
     }
   }, [isDragging, offsetX, offsetY]);
 
+  // スタイルから個別のプロパティを抽出（エクスポート時の互換性のため）
+  const stroke = (style as any)?.stroke;
+  const strokeWidth = (style as any)?.strokeWidth;
+  const strokeDasharray = (style as any)?.strokeDasharray;
+
   return (
     <>
       <path
@@ -79,6 +84,9 @@ const DraggableEdge: React.FC<EdgeProps> = ({
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd as string}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        strokeDasharray={strokeDasharray}
       />
       <EdgeLabelRenderer>
         {label && (
