@@ -6,7 +6,8 @@ import { ERROR_MESSAGES } from '../constants/diagram';
 interface UseFileUploadReturn {
   handleFileUpload: (
     event: React.ChangeEvent<HTMLInputElement>,
-    onSuccess: (tables: Table[], relationships: Relationship[], content: string) => void
+    onSuccess: (tables: Table[], relationships: Relationship[], content: string) => void,
+    onError?: (error: string, details?: string) => void
   ) => void;
 }
 
@@ -14,7 +15,8 @@ export const useFileUpload = (): UseFileUploadReturn => {
   const handleFileUpload = useCallback(
     (
       event: React.ChangeEvent<HTMLInputElement>,
-      onSuccess: (tables: Table[], relationships: Relationship[], content: string) => void
+      onSuccess: (tables: Table[], relationships: Relationship[], content: string) => void,
+      onError?: (error: string, details?: string) => void
     ) => {
       const files = event.target.files;
       const target = event.target;
@@ -41,8 +43,13 @@ export const useFileUpload = (): UseFileUploadReturn => {
                 parseSQLToTables(combinedContent);
               onSuccess(parsedTables, parsedRelationships, combinedContent);
             } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
               console.error('Failed to parse SQL:', error);
-              alert(ERROR_MESSAGES.sqlParseFailed);
+              if (onError) {
+                onError(ERROR_MESSAGES.sqlParseFailed, errorMessage);
+              } else {
+                alert(ERROR_MESSAGES.sqlParseFailed);
+              }
             }
 
             // inputをリセットして同じファイルを再度選択可能にする
@@ -52,8 +59,13 @@ export const useFileUpload = (): UseFileUploadReturn => {
           }
         };
         reader.onerror = (error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
           console.error('File reading error:', error);
-          alert(ERROR_MESSAGES.fileUploadFailed);
+          if (onError) {
+            onError(ERROR_MESSAGES.fileUploadFailed, errorMessage);
+          } else {
+            alert(ERROR_MESSAGES.fileUploadFailed);
+          }
         };
         reader.readAsText(file);
       });
