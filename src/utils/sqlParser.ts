@@ -20,25 +20,26 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
   }[] = [];
 
   // ALTER TABLE文を個別に抽出して処理
-  // IF EXISTSにも対応
-  const alterTableStatements = normalizedSQL.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:`?\w+`?\.)?`?\w+`?[\s\S]*?;/gi) || [];
+  // IF EXISTSにも対応、SQL Serverのブラケット記法 [table] にも対応
+  const alterTableStatements = normalizedSQL.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:(?:`?\w+`?|\[\w+\])\.)?(?:`?\w+`?|\[\w+\])[\s\S]*?;/gi) || [];
 
   alterTableStatements.forEach(statement => {
-    // テーブル名を抽出
-    const tableNameMatch = statement.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:`?(\w+)`?\.)?`?(\w+)`?/i);
+    // テーブル名を抽出（バッククォートとブラケットの両方に対応）
+    const tableNameMatch = statement.match(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:(?:`?(\w+)`?|\[(\w+)\])\.)?(?:`?(\w+)`?|\[(\w+)\])/i);
     if (!tableNameMatch) return;
 
-    const tableName = tableNameMatch[2];
+    const tableName = tableNameMatch[3] || tableNameMatch[4]; // バッククォートまたはブラケット
 
     // 各ADD句を個別に処理（カンマ区切りの複数ADD対応）
     // ADD CONSTRAINT または ADD PRIMARY KEY/FOREIGN KEY/UNIQUE を検索
-    const addClauses = statement.matchAll(/ADD\s+(?:CONSTRAINT\s+\w+\s+)?(PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE)\s*\(([^)]+)\)(?:\s+REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(([^)]+)\))?(?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|SET\s+NULL|NO\s+ACTION|RESTRICT))*/gi);
+    // SQL Serverのブラケット記法にも対応
+    const addClauses = statement.matchAll(/ADD\s+(?:CONSTRAINT\s+(?:\w+|\[\w+\])\s+)?(PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE)\s*\(([^)]+)\)(?:\s+REFERENCES\s+(?:(?:`?\w+`?|\[\w+\])\.)?(?:`?(\w+)`?|\[(\w+)\])\s*\(([^)]+)\))?(?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|SET\s+NULL|NO\s+ACTION|RESTRICT))*/gi);
 
     for (const addMatch of addClauses) {
       const constraintType = addMatch[1].toUpperCase().replace(/\s+/g, '_');
-      const columns = addMatch[2].split(',').map(col => col.trim().replace(/`/g, ''));
-      const refTable = addMatch[3];
-      const refColumns = addMatch[4]?.split(',').map(col => col.trim().replace(/`/g, ''));
+      const columns = addMatch[2].split(',').map(col => col.trim().replace(/[\[\]`]/g, '')); // ブラケットとバッククォート除去
+      const refTable = addMatch[3] || addMatch[4]; // バッククォートまたはブラケット
+      const refColumns = addMatch[5]?.split(',').map(col => col.trim().replace(/[\[\]`]/g, '')); // ブラケットとバッククォート除去
 
       if (constraintType === 'PRIMARY_KEY') {
         alterTableConstraints.push({
@@ -64,14 +65,14 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
     }
   });
 
-  // CREATE TABLEステートメントを抽出（スキーマ名対応）
-  const createTableRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:`?(\w+)`?\.)?`?(\w+)`?\s*\(([\s\S]*?)\);/gi;
+  // CREATE TABLEステートメントを抽出（スキーマ名対応、SQL Serverブラケット記法対応）
+  const createTableRegex = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:(?:`?(\w+)`?|\[(\w+)\])\.)?(?:`?([\w.]+)`?|\[([\w.]+)\])\s*\(([\s\S]*?)\);/gi;
   let match;
 
   while ((match = createTableRegex.exec(normalizedSQL)) !== null) {
-    // const schemaName = match[1]; // スキーマ名（あれば）- 将来の機能拡張用
-    const tableName = match[2];  // テーブル名
-    const tableContent = match[3]; // テーブル定義内容
+    // const schemaName = match[1] || match[2]; // スキーマ名（あれば）- 将来の機能拡張用
+    const tableName = match[3] || match[4];  // テーブル名（バッククォートまたはブラケット）
+    const tableContent = match[5]; // テーブル定義内容
 
     const columns: Column[] = [];
     const lines = tableContent.split('\n').map(line => line.trim()).filter(line => line);
@@ -85,12 +86,12 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
         console.log(`Line with PRIMARY: "${line}"`);
       }
 
-      // CONSTRAINT ... PRIMARY KEY の形式をスキップ
-      if (line.match(/^CONSTRAINT\s+\w+\s+PRIMARY\s+KEY/i)) {
-        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i);
+      // CONSTRAINT ... PRIMARY KEY の形式をスキップ（SQL Serverブラケット記法対応）
+      if (line.match(/^CONSTRAINT\s+(?:\w+|\[\w+\])\s+PRIMARY\s+KEY/i)) {
+        const pkMatch = line.match(/PRIMARY\s+KEY\s*(?:CLUSTERED\s*)?\(\s*([^)]+)\s*\)/i);
         if (pkMatch) {
-          // カンマ区切りで複数のカラム名を取得（複合主キー対応）
-          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          // カンマ区切りで複数のカラム名を取得（複合主キー対応、ブラケット除去）
+          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
           primaryKeys.push(...columns);
         }
         continue;
@@ -99,24 +100,24 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
       // PRIMARY KEY制約（行頭がPRIMARY KEYで始まる）
       if (line.match(/^PRIMARY\s+KEY\s*\(/i)) {
         console.log(`PRIMARY KEY line: "${line}"`);
-        const pkMatch = line.match(/PRIMARY\s+KEY\s*\(\s*([^)]+)\s*\)/i);
+        const pkMatch = line.match(/PRIMARY\s+KEY\s*(?:CLUSTERED\s*)?\(\s*([^)]+)\s*\)/i);
         if (pkMatch) {
           console.log(`  → Captured: "${pkMatch[1]}"`);
-          // カンマ区切りで複数のカラム名を取得（複合主キー対応）
-          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
+          // カンマ区切りで複数のカラム名を取得（複合主キー対応、ブラケット除去）
+          const columns = pkMatch[1].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
           primaryKeys.push(...columns);
         }
         continue;
       }
 
-      // CONSTRAINT ... FOREIGN KEY の形式
-      if (line.match(/^CONSTRAINT\s+\w+\s+FOREIGN\s+KEY/i)) {
+      // CONSTRAINT ... FOREIGN KEY の形式（SQL Serverブラケット記法対応）
+      if (line.match(/^CONSTRAINT\s+(?:\w+|\[\w+\])\s+FOREIGN\s+KEY/i)) {
         // 複合外部キーの場合: FOREIGN KEY (col1, col2) REFERENCES table(col1, col2)
-        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*([^)]+)\s*\)/i);
+        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:(?:`?\w+`?|\[\w+\])\.)?(?:`?(\w+)`?|\[(\w+)\])\s*\(\s*([^)]+)\s*\)/i);
         if (compositeFkMatch) {
-          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
-          const refTable = compositeFkMatch[2];
-          const refColumns = compositeFkMatch[3].split(',').map(col => col.trim().replace(/`/g, ''));
+          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
+          const refTable = compositeFkMatch[2] || compositeFkMatch[3]; // バッククォートまたはブラケット
+          const refColumns = compositeFkMatch[4].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
 
           // 各カラムを外部キーとして登録
           sourceColumns.forEach((sourceCol, index) => {
@@ -137,14 +138,14 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
         continue;
       }
 
-      // FOREIGN KEY制約
+      // FOREIGN KEY制約（SQL Serverブラケット記法対応）
       if (line.match(/FOREIGN\s+KEY/i)) {
         // 複合外部キーの場合: FOREIGN KEY (col1, col2) REFERENCES table(col1, col2)
-        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*([^)]+)\s*\)/i);
+        const compositeFkMatch = line.match(/FOREIGN\s+KEY\s*\(\s*([^)]+)\s*\)\s*REFERENCES\s+(?:(?:`?\w+`?|\[\w+\])\.)?(?:`?(\w+)`?|\[(\w+)\])\s*\(\s*([^)]+)\s*\)/i);
         if (compositeFkMatch) {
-          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/`/g, ''));
-          const refTable = compositeFkMatch[2];
-          const refColumns = compositeFkMatch[3].split(',').map(col => col.trim().replace(/`/g, ''));
+          const sourceColumns = compositeFkMatch[1].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
+          const refTable = compositeFkMatch[2] || compositeFkMatch[3]; // バッククォートまたはブラケット
+          const refColumns = compositeFkMatch[4].split(',').map(col => col.trim().replace(/[\[\]`]/g, ''));
 
           // 各カラムを外部キーとして登録
           sourceColumns.forEach((sourceCol, index) => {
@@ -170,11 +171,11 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
         continue;
       }
 
-      // カラム定義（SERIAL, BIGSERIAL, その他の型に対応）
-      const columnMatch = line.match(/^`?(\w+)`?\s+(SERIAL|BIGSERIAL|INTEGER|INT|TEXT|VARCHAR|TIMESTAMP|DATE|REAL|NUMERIC|BOOLEAN|\w+(?:\s+WITH\s+TIME\s+ZONE)?(?:\([\d,\s]+\))?)/i);
+      // カラム定義（SERIAL, BIGSERIAL, SQL Server型に対応、ブラケット記法対応）
+      const columnMatch = line.match(/^(?:`?(\w+)`?|\[(\w+)\])\s+(SERIAL|BIGSERIAL|INTEGER|INT|BIGINT|TEXT|VARCHAR|NVARCHAR|CHAR|NCHAR|TIMESTAMP|DATETIME|DATE|REAL|NUMERIC|DECIMAL|BOOLEAN|BIT|VARBINARY|BINARY|\w+(?:\s+WITH\s+TIME\s+ZONE)?(?:\([\d,\s]+\))?(?:\s+IDENTITY)?)/i);
       if (columnMatch) {
-        const columnName = columnMatch[1];
-        let columnType = columnMatch[2];
+        const columnName = columnMatch[1] || columnMatch[2]; // バッククォートまたはブラケット
+        let columnType = columnMatch[3];
 
         // SERIAL/BIGSERIALは自動的に主キーとして扱うことが多いが、明示的なPKチェックも行う
         // const isSerialType = columnType.match(/^(BIG)?SERIAL$/i); // 将来の機能拡張用
@@ -185,10 +186,11 @@ export function parseSQLToTables(sql: string): { tables: Table[]; relationships:
           primaryKeys.push(columnName);
         }
 
-        // カラムレベルのREFERENCES（スキーマ名対応）
-        const inlineFKMatch = line.match(/REFERENCES\s+(?:`?\w+`?\.)?`?(\w+)`?\s*\(\s*`?(\w+)`?\s*\)/i);
+        // カラムレベルのREFERENCES（スキーマ名対応、SQL Serverブラケット記法対応）
+        const inlineFKMatch = line.match(/REFERENCES\s+(?:(?:`?\w+`?|\[\w+\])\.)?(?:`?(\w+)`?|\[(\w+)\])(?:\s*\(\s*(?:`?(\w+)`?|\[(\w+)\])\s*\))?/i);
         if (inlineFKMatch) {
-          const [, refTable, refColumn] = inlineFKMatch;
+          const refTable = inlineFKMatch[1] || inlineFKMatch[2];
+          const refColumn = inlineFKMatch[3] || inlineFKMatch[4] || columnName; // 参照先カラムが省略されている場合は同名と仮定
           foreignKeys.set(columnName, { table: refTable, column: refColumn });
 
           relationships.push({

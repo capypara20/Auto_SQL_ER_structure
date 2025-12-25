@@ -57,16 +57,37 @@ npm run preview
 
 ## サンプルファイル
 
-`public/examples/sample.sql` にサンプルSQLファイルが含まれています。
-ブログシステムのデータベーススキーマの例です。
+`public/examples/` ディレクトリに各種サンプルSQLファイルが含まれています：
+
+- **sample.sql** - ブログシステムの基本的な例
+- **test-sqlserver.sql** - SQL Server形式（ブラケット記法 `[TableName]`）
+- **test-mysql.sql** - MySQL形式（バッククォート記法 `` `table_name` ``）
+- **test-postgresql.sql** - PostgreSQL形式（標準SQL記法）
+- **test-mixed.sql** - 混合記法（複数のDB形式が混在）
 
 ## 対応しているSQL構文
 
-- CREATE TABLE文
+### 基本構文
+- CREATE TABLE文（IF NOT EXISTS対応）
+- ALTER TABLE文（IF EXISTS対応）
 - PRIMARY KEY制約（テーブルレベル、カラムレベル）
 - FOREIGN KEY制約（テーブルレベル、カラムレベル）
-- REFERENCES句
-- 基本的なデータ型
+- REFERENCES句（ON DELETE/UPDATE CASCADE対応）
+- UNIQUE制約
+- CHECK制約（パース可能）
+
+### データベース固有の記法
+- **MySQL**: バッククォート `` `table_name` ``、AUTO_INCREMENT
+- **SQL Server**: ブラケット `[TableName]`、IDENTITY、NVARCHAR、CLUSTERED
+- **PostgreSQL**: SERIAL、BIGSERIAL、標準SQL記法
+- スキーマ名付きテーブル（`schema.table`、`[schema].[table]`）
+
+### 対応データ型
+- 整数型: INT, INTEGER, BIGINT, SERIAL, BIGSERIAL, IDENTITY
+- 文字列型: VARCHAR, NVARCHAR, CHAR, NCHAR, TEXT
+- 数値型: DECIMAL, NUMERIC, REAL
+- 日付時刻型: TIMESTAMP, DATETIME, DATE, TIME (WITH TIME ZONE対応)
+- その他: BOOLEAN, BIT, BINARY, VARBINARY, JSON, JSONB
 
 ## 技術スタック
 

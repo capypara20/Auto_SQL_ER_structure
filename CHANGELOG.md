@@ -2,6 +2,40 @@
 
 このファイルはプロジェクトの主要な変更を記録します。
 
+## [2025-12-26] - SQL Server対応: ブラケット記法のサポート
+
+### 追加
+- **SQL Serverブラケット記法のサポート**: `[TableName]`、`[ColumnName]` 形式に対応
+  - CREATE TABLEでのブラケット記法
+  - ALTER TABLEでのブラケット記法
+  - CONSTRAINT定義でのブラケット記法
+  - スキーマ名付きテーブル `[schema].[table]` に対応
+- **SQL Server特有のデータ型を追加**:
+  - NVARCHAR, NCHAR (Unicode文字列型)
+  - BIGINT, BIT (数値型)
+  - DATETIME (日付時刻型)
+  - VARBINARY, BINARY (バイナリ型)
+  - IDENTITY (自動採番)
+- **SQL Server特有の構文対応**:
+  - PRIMARY KEY CLUSTERED
+  - ON DELETE/UPDATE CASCADE
+- **テストサンプルファイルの追加**:
+  - test-sqlserver.sql - SQL Server形式の包括的なサンプル
+  - test-mysql.sql - MySQL形式のサンプル
+  - test-postgresql.sql - PostgreSQL形式のサンプル
+  - test-mixed.sql - 混合記法のサンプル
+
+### 変更
+- SQLパーサーの正規表現を拡張してブラケット記法に対応
+- 既存のバッククォート記法（MySQL）と標準SQL記法（PostgreSQL）との互換性を維持
+
+### 技術詳細
+- 修正ファイル: `src/utils/sqlParser.ts`
+- 対応記法: `` `table` ``（MySQL）、`[table]`（SQL Server）、標準SQL（PostgreSQL）
+- 複数記法の混在にも対応
+
+---
+
 ## [Unreleased] - 今後実装予定
 
 ### 予定している機能
